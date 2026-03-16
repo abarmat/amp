@@ -22,7 +22,10 @@ const SLOT_MISMATCH_LIMIT: u8 = 10;
 const KNOWN_BLOCKTIME_DELTA: i64 = 120;
 
 #[derive(Parser)]
-#[command(name = "solana-compare")]
+#[command(
+    name = "solana-compare",
+    about = "Compare OF1 and JSON-RPC data for a given epoch"
+)]
 struct Cli {
     /// Epoch number to process.
     #[arg(long)]
@@ -39,7 +42,9 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::fmt()
+        .with_env_filter(env_filter_or_info())
+        .init();
 
     let cli = Cli::parse();
 
@@ -52,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     let start_slot = cli.epoch * slots_per_epoch;
     let end_slot = (cli.epoch + 1) * slots_per_epoch - 1;
 
-    tracing::info!( epoch = %cli.epoch, start_slot, end_slot, "running OF1 vs RPC comparison");
+    tracing::info!(epoch = %cli.epoch, start_slot, end_slot, "running OF1 vs RPC comparison");
 
     let reqwest = Arc::new(reqwest::Client::new());
     let rpc_client = {
@@ -458,4 +463,9 @@ fn known_log_message_mismatch(
         || rpc_log_messages.contains(&truncated_log_marker);
 
     is_known_mismatch1 || is_known_mismatch2
+}
+
+fn env_filter_or_info() -> tracing_subscriber::EnvFilter {
+    tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }
