@@ -174,6 +174,7 @@ impl TestCtx {
         opts_mut.collector.interval = Duration::ZERO;
         opts_mut.compactor.interval = Duration::ZERO;
         opts_mut.compactor.algorithm.cooldown_duration = Duration::ZERO;
+        opts_mut.compactor.algorithm.skip_latest_segments = 0;
         opts_mut.partition = SegmentSizeLimit::new(100, 0, 0, 0, Generation::default(), 10);
         let metadata_db = self.ctx.daemon_worker().metadata_db().clone();
         let data_store = self.ctx.daemon_server().data_store().clone();

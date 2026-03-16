@@ -153,16 +153,20 @@ use crate::compaction::{compactor::CompactionGroup, plan::CompactionFile};
 /// based on their size and age.
 ///
 /// ## Fields
-/// - `cooldown_duration`: The base duration used to calculate
-///   the cooldown period for files based on their generation.
+/// - `cooldown_duration`: Minimum time before a file can initiate a new
+///   compaction group. Prevents excessive I/O from rewriting large files
+///   too frequently.
 /// - `target_partition_size`: The upper bound for segment size limits.
 ///   Files exceeding this limit will not be compacted together. This
 ///   value must be non-unbounded.
 /// - `max_eager_generation`: Segments up to this generation will not be subject to cooldowns.
+/// - `skip_latest_segments`: Number of latest segments to skip during
+///   compaction. Avoids compacting recently-written data that may contain
+///   reorganized blocks.
 #[derive(Clone, Copy, Debug)]
 pub struct CompactionAlgorithm {
-    /// The amount of time a file must wait before it can be
-    /// compacted with files of different generations.
+    /// Minimum time before a file can initiate a new compaction group.
+    /// Prevents excessive I/O from rewriting large files too frequently.
     pub cooldown_duration: Duration,
     /// The upper bound for segment size limits. Files exceeding this limit
     /// will not be compacted together. This value must be non-unbounded.
@@ -170,6 +174,10 @@ pub struct CompactionAlgorithm {
 
     /// Segments up to this generation will not be subject to cooldowns
     pub max_eager_generation: Option<Generation>,
+
+    /// Number of latest segments to skip during compaction. Avoids compacting
+    /// recently-written data that may contain reorganized blocks.
+    pub skip_latest_segments: u64,
 }
 
 impl CompactionAlgorithm {
@@ -207,9 +215,17 @@ impl CompactionAlgorithm {
     /// - When a group is started, if the candidate can be added to it.
     ///
     /// The current algorithm is:
-    /// - If the file is `Hot`, it cannot start a new group.
-    /// - If a group has been started, it will accept files up to the target size, regardless of file state.
+    /// - `Hot` files (within `cooldown_duration`) cannot start a new group,
+    ///   but can join an existing one. This prevents excessive I/O from
+    ///   rewriting large files too frequently.
+    /// - Files are accepted into a group up to the target size.
+    ///
+    /// Note: The latest segments are excluded before they reach the predicate
+    /// (see `CompactionPlan::from_snapshot`), controlled by
+    /// `skip_latest_segments`.
     pub fn predicate(&self, group: &CompactionGroup, candidate: &CompactionFile) -> bool {
+        // Hot files cannot start a new group (prevents excessive I/O from
+        // rewriting large files too frequently).
         if group.is_empty() && self.file_state(&candidate.size) == FileState::Hot {
             return false;
         }
@@ -241,13 +257,15 @@ impl<'a> From<&'a ParquetConfig> for CompactionAlgorithm {
                     Some(Generation::from(generation))
                 }
             },
+            skip_latest_segments: config.compactor.algorithm.skip_latest_segments,
         }
     }
 }
 
-/// Cooldown period for file compaction. Before the period elapses,
-/// the file will only be compacted if the candidate group shares the
-/// same generation.
+/// Cooldown period for file compaction. A file within its cooldown
+/// period is considered "hot" and cannot initiate a new compaction
+/// group. This prevents excessive I/O from rewriting large files
+/// too frequently. Hot files can still be added to existing groups.
 #[derive(Clone, Copy)]
 pub struct Cooldown(Duration);
 

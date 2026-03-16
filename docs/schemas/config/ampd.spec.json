@@ -140,7 +140,7 @@
           "minimum": 0
         },
         "cooldown_duration": {
-          "description": "Base cooldown duration in seconds between compaction runs (default: 1024).",
+          "description": "Minimum time in seconds before a file can initiate a new compaction group.\nPrevents excessive I/O from rewriting large files too frequently (default: 1024).",
           "$ref": "#/$defs/ConfigDuration"
         },
         "metadata_concurrency": {
@@ -162,6 +162,13 @@
           "description": "Target rows per file, 0 means no limit (default: 0).",
           "type": "integer",
           "format": "uint64",
+          "minimum": 0
+        },
+        "skip_latest_segments": {
+          "description": "Number of latest segments to skip during compaction. Avoids compacting\nrecently-written data that may contain reorganized blocks (default: 3).",
+          "type": "integer",
+          "format": "uint64",
+          "default": 3,
           "minimum": 0
         },
         "write_concurrency": {

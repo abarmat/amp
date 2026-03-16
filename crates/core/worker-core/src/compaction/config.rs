@@ -75,10 +75,15 @@ impl Default for CompactorConfig {
 
 #[derive(Debug, Clone)]
 pub struct CompactionAlgorithmConfig {
-    /// Base cooldown duration in seconds (default: 1024.0)
+    /// Minimum time before a file can initiate a new compaction group.
+    /// Prevents excessive I/O from rewriting large files too frequently
+    /// (default: 1024 seconds).
     pub cooldown_duration: ConfigDuration<1024>,
     /// Eager compaction limits
     pub eager_compaction_limit: SizeLimitConfig,
+    /// Number of latest segments to skip during compaction. Avoids compacting
+    /// recently-written data that may contain reorganized blocks (default: 3).
+    pub skip_latest_segments: u64,
 }
 
 impl Default for CompactionAlgorithmConfig {
@@ -89,6 +94,7 @@ impl Default for CompactionAlgorithmConfig {
                 bytes: 0,
                 ..Default::default()
             },
+            skip_latest_segments: 3,
         }
     }
 }

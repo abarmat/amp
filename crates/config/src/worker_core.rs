@@ -288,13 +288,17 @@ impl From<&CompactorConfig> for amp_worker_core::CompactorConfig {
 
 /// Compaction algorithm tuning parameters.
 ///
-/// Controls cooldown between compaction runs and eager compaction size limits.
+/// Controls cooldown, segment exclusion, and eager compaction size limits.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(default)]
 pub struct CompactionAlgorithmConfig {
-    /// Base cooldown duration in seconds between compaction runs (default: 1024).
+    /// Minimum time in seconds before a file can initiate a new compaction group.
+    /// Prevents excessive I/O from rewriting large files too frequently (default: 1024).
     pub cooldown_duration: ConfigDuration<1024>,
+    /// Number of latest segments to skip during compaction. Avoids compacting
+    /// recently-written data that may contain reorganized blocks (default: 3).
+    pub skip_latest_segments: u64,
     /// Eager compaction limits (flattened fields: `overflow`, `bytes`, `rows`).
     #[serde(
         flatten,
@@ -309,6 +313,7 @@ impl Default for CompactionAlgorithmConfig {
     fn default() -> Self {
         Self {
             cooldown_duration: ConfigDuration::default(),
+            skip_latest_segments: 3,
             eager_compaction_limit: SizeLimitConfig::default_eager_limit(),
         }
     }
@@ -318,6 +323,7 @@ impl From<&CompactionAlgorithmConfig> for amp_worker_core::CompactionAlgorithmCo
     fn from(config: &CompactionAlgorithmConfig) -> Self {
         Self {
             cooldown_duration: (&config.cooldown_duration).into(),
+            skip_latest_segments: config.skip_latest_segments,
             eager_compaction_limit: (&config.eager_compaction_limit).into(),
         }
     }

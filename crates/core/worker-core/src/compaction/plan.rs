@@ -142,6 +142,11 @@ impl<'a> CompactionPlan<'a> {
     ) -> CompactionResult<Option<Self>> {
         let chain = table.canonical_segments();
 
+        // Drop the latest N segments from the end of the canonical chain to
+        // avoid compacting data that may contain reorganized blocks.
+        let skip = opts.compactor.algorithm.skip_latest_segments as usize;
+        let chain = &chain[..chain.len().saturating_sub(skip)];
+
         let size = chain.len();
         if size == 0 {
             return Ok(None);
