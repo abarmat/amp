@@ -1,0 +1,95 @@
+# Schema
+Auto-generated file. See `to_markdown` in `crates/core/datasets-raw/src/schema.rs`.
+
+## blocks
+````
++-----------------------+-------------------------------+-------------+
+| column_name           | data_type                     | is_nullable |
++-----------------------+-------------------------------+-------------+
+| _block_num            | UInt64                        | NO          |
+| block_num             | UInt64                        | NO          |
+| timestamp             | Timestamp(Nanosecond, +00:00) | NO          |
+| hash                  | FixedSizeBinary(32)           | NO          |
+| parent_hash           | FixedSizeBinary(32)           | NO          |
+| ommers_hash           | FixedSizeBinary(32)           | NO          |
+| miner                 | FixedSizeBinary(20)           | NO          |
+| state_root            | FixedSizeBinary(32)           | NO          |
+| transactions_root     | FixedSizeBinary(32)           | NO          |
+| receipt_root          | FixedSizeBinary(32)           | NO          |
+| logs_bloom            | Binary                        | NO          |
+| difficulty            | Decimal128(38, 0)             | NO          |
+| total_difficulty      | Decimal128(38, 0)             | YES         |
+| gas_limit             | UInt64                        | NO          |
+| gas_used              | UInt64                        | NO          |
+| extra_data            | Binary                        | NO          |
+| mix_hash              | FixedSizeBinary(32)           | NO          |
+| nonce                 | UInt64                        | NO          |
+| base_fee_per_gas      | Decimal128(38, 0)             | YES         |
+| withdrawals_root      | FixedSizeBinary(32)           | YES         |
+| blob_gas_used         | UInt64                        | YES         |
+| excess_blob_gas       | UInt64                        | YES         |
+| parent_beacon_root    | FixedSizeBinary(32)           | YES         |
+| requests_hash         | FixedSizeBinary(32)           | YES         |
+| general_gas_limit     | UInt64                        | NO          |
+| shared_gas_limit      | UInt64                        | NO          |
+| timestamp_millis_part | UInt64                        | NO          |
++-----------------------+-------------------------------+-------------+
+````
+## transactions
+````
++--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------+
+| column_name              | data_type                                                                                                                                                                                                               | is_nullable |
++--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------+
+| _block_num               | UInt64                                                                                                                                                                                                                  | NO          |
+| block_hash               | FixedSizeBinary(32)                                                                                                                                                                                                     | NO          |
+| block_num                | UInt64                                                                                                                                                                                                                  | NO          |
+| timestamp                | Timestamp(Nanosecond, +00:00)                                                                                                                                                                                           | NO          |
+| tx_index                 | UInt32                                                                                                                                                                                                                  | NO          |
+| tx_hash                  | FixedSizeBinary(32)                                                                                                                                                                                                     | NO          |
+| to                       | FixedSizeBinary(20)                                                                                                                                                                                                     | YES         |
+| from                     | FixedSizeBinary(20)                                                                                                                                                                                                     | NO          |
+| nonce                    | UInt64                                                                                                                                                                                                                  | NO          |
+| chain_id                 | UInt64                                                                                                                                                                                                                  | NO          |
+| gas_limit                | UInt64                                                                                                                                                                                                                  | NO          |
+| gas_used                 | UInt64                                                                                                                                                                                                                  | NO          |
+| type                     | Int32                                                                                                                                                                                                                   | NO          |
+| max_fee_per_gas          | Decimal128(38, 0)                                                                                                                                                                                                       | NO          |
+| max_priority_fee_per_gas | Decimal128(38, 0)                                                                                                                                                                                                       | NO          |
+| gas_price                | Decimal128(38, 0)                                                                                                                                                                                                       | YES         |
+| status                   | Boolean                                                                                                                                                                                                                 | NO          |
+| value                    | Utf8                                                                                                                                                                                                                    | YES         |
+| input                    | Binary                                                                                                                                                                                                                  | YES         |
+| r                        | FixedSizeBinary(32)                                                                                                                                                                                                     | NO          |
+| s                        | FixedSizeBinary(32)                                                                                                                                                                                                     | NO          |
+| v_parity                 | Boolean                                                                                                                                                                                                                 | NO          |
+| fee_token                | FixedSizeBinary(20)                                                                                                                                                                                                     | YES         |
+| nonce_key                | FixedSizeBinary(32)                                                                                                                                                                                                     | NO          |
+| calls                    | List(Struct(to: FixedSizeBinary(20), value: Utf8, input: Binary))                                                                                                                                                       | NO          |
+| fee_payer_signature      | Struct(r: FixedSizeBinary(32), s: FixedSizeBinary(32), y_parity: Boolean)                                                                                                                                               | YES         |
+| key_authorization        | Struct(chain_id: UInt64, key_type: Utf8, key_id: FixedSizeBinary(20), expiry: UInt64, limits: List(Struct(token: FixedSizeBinary(20), limit: Utf8)), r: FixedSizeBinary(32), s: FixedSizeBinary(32), y_parity: Boolean) | YES         |
+| aa_authorization_list    | List(Struct(chain_id: UInt64, address: FixedSizeBinary(20), nonce: UInt64, r: FixedSizeBinary(32), s: FixedSizeBinary(32), y_parity: Boolean))                                                                          | YES         |
+| valid_before             | UInt64                                                                                                                                                                                                                  | YES         |
+| valid_after              | UInt64                                                                                                                                                                                                                  | YES         |
+| access_list              | List(Struct(address: FixedSizeBinary(20), storage_keys: List(FixedSizeBinary(32))))                                                                                                                                     | YES         |
++--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------+
+````
+## logs
+````
++-------------+-------------------------------+-------------+
+| column_name | data_type                     | is_nullable |
++-------------+-------------------------------+-------------+
+| _block_num  | UInt64                        | NO          |
+| block_hash  | FixedSizeBinary(32)           | NO          |
+| block_num   | UInt64                        | NO          |
+| timestamp   | Timestamp(Nanosecond, +00:00) | NO          |
+| tx_hash     | FixedSizeBinary(32)           | NO          |
+| tx_index    | UInt32                        | NO          |
+| log_index   | UInt32                        | NO          |
+| address     | FixedSizeBinary(20)           | NO          |
+| topic0      | FixedSizeBinary(32)           | YES         |
+| topic1      | FixedSizeBinary(32)           | YES         |
+| topic2      | FixedSizeBinary(32)           | YES         |
+| topic3      | FixedSizeBinary(32)           | YES         |
+| data        | Binary                        | NO          |
++-------------+-------------------------------+-------------+
+````

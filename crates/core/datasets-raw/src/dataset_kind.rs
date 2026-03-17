@@ -171,6 +171,14 @@ define_dataset_kind! {
 }
 
 define_dataset_kind! {
+    /// Type-safe representation of the Tempo dataset kind.
+    ///
+    /// This zero-sized type represents the "tempo" dataset kind, which extracts
+    /// blockchain data from Tempo chain sources.
+    pub struct TempoDatasetKind => "tempo",
+}
+
+define_dataset_kind! {
     /// Type-safe representation of the Solana dataset kind.
     ///
     /// This zero-sized type represents the "solana" dataset kind, which extracts

@@ -4,13 +4,18 @@ use std::collections::BTreeMap;
 
 use datasets_common::{block_num::BlockNum, manifest::TableSchema, network_id::NetworkId};
 
-use crate::dataset_kind::{EvmRpcDatasetKind, FirehoseDatasetKind, SolanaDatasetKind};
+use crate::dataset_kind::{
+    EvmRpcDatasetKind, FirehoseDatasetKind, SolanaDatasetKind, TempoDatasetKind,
+};
 
 /// EVM-RPC dataset manifest.
 pub type EvmRpcManifest = Manifest<EvmRpcDatasetKind>;
 
 /// Firehose dataset manifest.
 pub type FirehoseManifest = Manifest<FirehoseDatasetKind>;
+
+/// Tempo dataset manifest.
+pub type TempoManifest = Manifest<TempoDatasetKind>;
 
 /// Solana dataset manifest.
 pub type SolanaManifest = Manifest<SolanaDatasetKind>;
@@ -61,7 +66,7 @@ pub mod schema {
 
     /// Manifest type using the unified `RawDatasetKind` enum for JSON schema generation.
     ///
-    /// Produces a single schema where `kind` accepts any of `"evm-rpc"`, `"firehose"`, `"solana"`.
+    /// Produces a single schema where `kind` accepts any of `"evm-rpc"`, `"firehose"`, `"solana"`, `"tempo"`.
     pub type RawManifestSchema = Manifest<RawDatasetKind>;
 
     /// Unified enum of all raw dataset kinds, used for JSON schema generation.
@@ -74,5 +79,6 @@ pub mod schema {
         EvmRpc,
         Firehose,
         Solana,
+        Tempo,
     }
 }

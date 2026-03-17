@@ -46,6 +46,8 @@ members = [
     "crates/extractors/solana",
     "crates/extractors/solana/gen",
     "crates/extractors/solana-storage-proto",
+    "crates/extractors/tempo",
+    "crates/extractors/tempo/gen",
     "crates/services/admin-api",
     "crates/services/admin-api/gen",
     "crates/services/controller",

@@ -19,6 +19,7 @@ pub mod manifest;
 pub mod rows;
 #[cfg(feature = "gen-schema")]
 pub mod schema;
+pub mod tempo;
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Timestamp(pub Duration);

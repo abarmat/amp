@@ -250,6 +250,10 @@ gen:
     cp -f $(ls -t target/debug/build/datasets-solana-gen-*/out/tables.md | head -1) {{GEN_TABLE_SCHEMAS_OUTDIR}}/solana.md
     echo "  {{GEN_TABLE_SCHEMAS_OUTDIR}}/solana.md"
 
+    # Tempo (table schema only)
+    cp -f $(ls -t target/debug/build/datasets-tempo-gen-*/out/tables.md | head -1) {{GEN_TABLE_SCHEMAS_OUTDIR}}/tempo.md
+    echo "  {{GEN_TABLE_SCHEMAS_OUTDIR}}/tempo.md"
+
     # Static (provider only)
     cp -f $(ls -t target/debug/build/amp-providers-static-gen-*/out/schema.json | head -1) {{GEN_PROVIDER_SCHEMAS_OUTDIR}}/static.spec.json
     echo "  {{GEN_PROVIDER_SCHEMAS_OUTDIR}}/static.spec.json"
@@ -352,6 +356,14 @@ gen-solana-tables-schema DEST_DIR=GEN_TABLE_SCHEMAS_OUTDIR:
     @mkdir -p {{DEST_DIR}}
     @cp -f $(ls -t target/debug/build/datasets-solana-gen-*/out/tables.md | head -1) {{DEST_DIR}}/solana.md
     @echo "Table schema markdown generated and copied to {{DEST_DIR}}/solana.md"
+
+# Generate Tempo table schema markdown
+[group: 'codegen']
+gen-tempo-tables-schema DEST_DIR=GEN_TABLE_SCHEMAS_OUTDIR:
+    RUSTFLAGS="--cfg gen_schema_tables" cargo check -p datasets-tempo-gen
+    @mkdir -p {{DEST_DIR}}
+    @cp -f $(ls -t target/debug/build/datasets-tempo-gen-*/out/tables.md | head -1) {{DEST_DIR}}/tempo.md
+    @echo "Table schema markdown generated and copied to {{DEST_DIR}}/tempo.md"
 
 # Update solana-storage-proto .proto files from upstream agave repo
 [group: 'codegen']

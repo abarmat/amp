@@ -98,7 +98,8 @@
       "enum": [
         "evm-rpc",
         "firehose",
-        "solana"
+        "solana",
+        "tempo"
       ]
     },
     "Table": {

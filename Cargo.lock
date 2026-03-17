@@ -4490,6 +4490,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "datasets-tempo-gen"
+version = "0.1.0"
+dependencies = [
+ "datasets-common",
+ "datasets-raw",
+ "tempo-datasets",
+ "tokio",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12217,6 +12227,14 @@ dependencies = [
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tempo-datasets"
+version = "0.1.0"
+dependencies = [
+ "datasets-common",
+ "datasets-raw",
 ]
 
 [[package]]

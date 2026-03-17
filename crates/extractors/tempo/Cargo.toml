@@ -1,0 +1,9 @@
+[package]
+name = "tempo-datasets"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+datasets-common = { path = "../../core/datasets-common" }
+datasets-raw = { path = "../../core/datasets-raw" }
