@@ -24,6 +24,7 @@ use evm_rpc_datasets::{EvmRpcDatasetKind, Manifest as EvmRpcManifest};
 use firehose_datasets::{FirehoseDatasetKind, Manifest as FirehoseManifest};
 use parking_lot::RwLock;
 use solana_datasets::{Manifest as SolanaManifest, SolanaDatasetKind};
+use tempo_datasets::{Manifest as TempoManifest, TempoDatasetKind};
 
 /// Manages dataset loading and caching.
 ///
@@ -359,6 +360,16 @@ fn create_dataset_from_manifest(
                     source,
                 })?;
             Arc::new(firehose_datasets::dataset(reference.clone(), manifest))
+        }
+        s if s == TempoDatasetKind => {
+            let manifest = manifest_content
+                .try_into_manifest::<TempoManifest>()
+                .map_err(|source| GetDatasetError::ParseManifest {
+                    reference: reference.clone(),
+                    kind: TempoDatasetKind.into(),
+                    source,
+                })?;
+            Arc::new(tempo_datasets::dataset(reference.clone(), manifest))
         }
         s if s == DerivedDatasetKind => {
             let manifest = manifest_content

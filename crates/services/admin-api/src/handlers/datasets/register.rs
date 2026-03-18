@@ -1,4 +1,4 @@
-use amp_datasets_raw::manifest::{EvmRpcManifest, FirehoseManifest, SolanaManifest};
+use amp_datasets_raw::manifest::{EvmRpcManifest, FirehoseManifest, SolanaManifest, TempoManifest};
 use amp_datasets_registry::error::{LinkManifestError, RegisterManifestError, SetVersionTagError};
 use axum::{
     Json,
@@ -185,6 +185,10 @@ pub async fn handler(
                     .map_err(Error::from)?,
                     DatasetKind::EvmRpc => parse_and_canonicalize_raw_dataset_manifest::<
                         EvmRpcManifest,
+                    >(manifest_content.get())
+                    .map_err(Error::from)?,
+                    DatasetKind::Tempo => parse_and_canonicalize_raw_dataset_manifest::<
+                        TempoManifest,
                     >(manifest_content.get())
                     .map_err(Error::from)?,
                     DatasetKind::Firehose => parse_and_canonicalize_raw_dataset_manifest::<

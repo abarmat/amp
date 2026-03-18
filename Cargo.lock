@@ -3060,6 +3060,7 @@ dependencies = [
  "serde_json",
  "solana-datasets",
  "tempfile",
+ "tempo-datasets",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",

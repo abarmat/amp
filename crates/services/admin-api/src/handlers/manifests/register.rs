@@ -1,6 +1,6 @@
 //! Manifests register handler
 
-use amp_datasets_raw::manifest::{EvmRpcManifest, FirehoseManifest, SolanaManifest};
+use amp_datasets_raw::manifest::{EvmRpcManifest, FirehoseManifest, SolanaManifest, TempoManifest};
 use amp_datasets_registry::{error::RegisterManifestError, manifests::StoreError};
 use axum::{
     Json,
@@ -113,6 +113,10 @@ pub async fn handler(
         .map_err(Error::from)?,
         DatasetKind::EvmRpc => {
             parse_and_canonicalize_raw_dataset_manifest::<EvmRpcManifest>(&manifest_str)
+                .map_err(Error::from)?
+        }
+        DatasetKind::Tempo => {
+            parse_and_canonicalize_raw_dataset_manifest::<TempoManifest>(&manifest_str)
                 .map_err(Error::from)?
         }
         DatasetKind::Solana => {

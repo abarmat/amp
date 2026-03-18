@@ -6,7 +6,9 @@ use std::{
 };
 
 use amp_data_store::{DataStore, PhyTableRevision};
-use amp_datasets_raw::dataset_kind::{EvmRpcDatasetKind, FirehoseDatasetKind, SolanaDatasetKind};
+use amp_datasets_raw::dataset_kind::{
+    EvmRpcDatasetKind, FirehoseDatasetKind, SolanaDatasetKind, TempoDatasetKind,
+};
 use amp_datasets_registry::error::ResolveRevisionError;
 use amp_parquet::footer::{AmpMetadataFromParquetError, amp_metadata_from_parquet_file};
 use common::{
@@ -151,6 +153,8 @@ pub enum DatasetKind {
     Solana,
     /// Raw datasets that stream blockchain data from StreamingFast Firehose protocol.
     Firehose,
+    /// Raw datasets that extract blockchain data from Tempo RPC endpoints.
+    Tempo,
 }
 
 impl DatasetKind {
@@ -161,6 +165,7 @@ impl DatasetKind {
             Self::EvmRpc => EvmRpcDatasetKind.as_str(),
             Self::Solana => SolanaDatasetKind.as_str(),
             Self::Firehose => FirehoseDatasetKind.as_str(),
+            Self::Tempo => TempoDatasetKind.as_str(),
         }
     }
 }
@@ -181,6 +186,8 @@ impl TryFrom<&DatasetKindStr> for DatasetKind {
             Ok(Self::Derived)
         } else if *kind == EvmRpcDatasetKind {
             Ok(Self::EvmRpc)
+        } else if *kind == TempoDatasetKind {
+            Ok(Self::Tempo)
         } else if *kind == SolanaDatasetKind {
             Ok(Self::Solana)
         } else if *kind == FirehoseDatasetKind {
