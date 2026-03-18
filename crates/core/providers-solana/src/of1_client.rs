@@ -8,9 +8,12 @@ use yellowstone_faithful_car_parser as car_parser;
 
 use crate::{error::Of1StreamError, metrics, rpc_client};
 
+const TX_STATUS_META_FIELD: &str = "transaction status meta";
+const BLOCK_REWARDS_FIELD: &str = "block rewards";
+
 pub type DecodedTransactionStatusMeta = DecodedField<
     solana_storage_proto::confirmed_block::TransactionStatusMeta,
-    solana_storage_proto::StoredTransactionStatusMeta,
+    solana_storage_proto::StoredTransactionStatusMetaVersioned,
 >;
 
 pub type DecodedBlockRewards = DecodedField<
@@ -224,43 +227,6 @@ async fn read_next_slot<R: tokio::io::AsyncRead + Unpin>(
     node_reader: &mut car_parser::node::NodeReader<R>,
     prev_blockhash: [u8; 32],
 ) -> Result<Option<DecodedSlot>, Of1StreamError> {
-    /// Attempt to decode a field read from a CAR file as either protobuf or bincode encoded.
-    /// Fail if both decoding attempts fail.
-    ///
-    /// For some epochs transaction metadata / block rewards are stored as protobuf encoded,
-    /// while for others they are stored as bincode encoded. This function handles both cases.
-    fn decode_proto_or_bincode<P, B>(
-        field_name: &'static str,
-        data: &[u8],
-    ) -> Result<DecodedField<P, B>, Of1StreamError>
-    where
-        P: prost::Message + Default,
-        B: serde::de::DeserializeOwned,
-    {
-        // All fields that need to be decoded this way are ZSTD compressed in CAR files.
-        let decompressed_data = zstd::decode_all(data).map_err(|e| Of1StreamError::Zstd {
-            field_name,
-            error: e.to_string(),
-        })?;
-        match prost::Message::decode(&*decompressed_data).map(DecodedField::Proto) {
-            Ok(data_proto) => Ok(data_proto),
-            Err(prost_err) => {
-                match bincode::deserialize(&decompressed_data).map(DecodedField::Bincode) {
-                    Ok(data_bincode) => Ok(data_bincode),
-                    Err(bincode_err) => {
-                        let err = Of1StreamError::DecodeField {
-                            field_name,
-                            decompressed_data,
-                            prost_err: prost_err.to_string(),
-                            bincode_err: bincode_err.to_string(),
-                        };
-                        Err(err)
-                    }
-                }
-            }
-        }
-    }
-
     // Once we reach `Node::Block`, the node map will contain all of the nodes needed to reassemble
     // that block.
     let nodes = car_parser::node::Nodes::read_until_block(node_reader)
@@ -298,59 +264,28 @@ async fn read_next_slot<R: tokio::io::AsyncRead + Unpin>(
                 });
             };
 
-            let tx_df = nodes
+            nodes
                 .reassemble_dataframes(&tx.data)
-                .map_err(Of1StreamError::DataframeReassembly)?;
-            let tx_meta_df = nodes
+                .map_err(Of1StreamError::DataframeReassembly)
+                .and_then(|tx_df| bincode::deserialize(&tx_df).map_err(Of1StreamError::Bincode))
+                .map(|tx| {
+                    transactions.push(tx);
+                })?;
+            nodes
                 .reassemble_dataframes(&tx.metadata)
-                .map_err(Of1StreamError::DataframeReassembly)?;
-
-            let tx = bincode::deserialize(&tx_df).map_err(Of1StreamError::Bincode)?;
-            transactions.push(tx);
-
-            let tx_meta = if tx_meta_df.is_empty() {
-                None
-            } else {
-                let meta = match decode_proto_or_bincode("tx_status_meta", tx_meta_df.as_slice()) {
-                    Ok(meta) => meta,
-                    // With transaction status meta we could be working with the legacy bincode format
-                    // (in which some fields were not added yet) so we have to try to decode that as well.
-                    Err(Of1StreamError::DecodeField {
-                        field_name,
-                        decompressed_data,
-                        prost_err,
-                        bincode_err,
-                    }) => {
-                        let legacy_meta = bincode::deserialize::<
-                            solana_storage_proto::legacy::StoredTransactionStatusMeta,
-                        >(&decompressed_data);
-
-                        match legacy_meta {
-                            // The legacy bincode format was successfully decoded, convert it to
-                            // non-legacy format and return it.
-                            Ok(meta) => DecodedTransactionStatusMeta::Bincode(meta.into()),
-                            // Both decoding attempts failed, return the original error with additional
-                            // legacy bincode error details.
-                            Err(e) => {
-                                let err = Of1StreamError::DecodeField {
-                                    field_name,
-                                    decompressed_data,
-                                    prost_err,
-                                    bincode_err: format!(
-                                        "bincode error: {bincode_err}, legacy bincode error: {e}"
-                                    ),
-                                };
-                                return Err(err);
-                            }
-                        }
+                .map_err(Of1StreamError::DataframeReassembly)
+                .and_then(|meta_df| {
+                    if meta_df.is_empty() {
+                        Ok(None)
+                    } else {
+                        zstd_decompress(TX_STATUS_META_FIELD, &meta_df)
+                            .and_then(|meta| decode_tx_meta(block.slot, &meta))
+                            .map(Some)
                     }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                };
-                Some(meta)
-            };
-            transaction_metas.push(tx_meta);
+                })
+                .map(|meta| {
+                    transaction_metas.push(meta);
+                })?;
         }
     }
 
@@ -374,8 +309,11 @@ async fn read_next_slot<R: tokio::io::AsyncRead + Unpin>(
             nodes
                 .reassemble_dataframes(&rewards.data)
                 .map_err(Of1StreamError::DataframeReassembly)
+                .and_then(|block_rewards_df| {
+                    zstd_decompress(BLOCK_REWARDS_FIELD, &block_rewards_df)
+                })
                 .and_then(|rewards_df| {
-                    decode_proto_or_bincode("block_rewards", rewards_df.as_slice())
+                    decode_proto_or_bincode(block.slot, BLOCK_REWARDS_FIELD, rewards_df.as_slice())
                 })
         })
         .transpose()?;
@@ -423,6 +361,90 @@ async fn read_next_slot<R: tokio::io::AsyncRead + Unpin>(
     };
 
     Ok(Some(block))
+}
+
+/// Attempt to decode a field read from a CAR file as either protobuf or bincode encoded.
+/// Fail if both decoding attempts fail. All fields that need to be decoded this way are
+/// ZSTD compressed, so the input data to this function is expected to already be
+/// decompressed.
+///
+/// For some epochs transaction metadata / block rewards are stored as protobuf encoded,
+/// while for others they are stored as bincode encoded. This function handles both cases.
+fn decode_proto_or_bincode<P, B>(
+    slot: solana_clock::Slot,
+    field_name: &'static str,
+    decompressed_input: &[u8],
+) -> Result<DecodedField<P, B>, Of1StreamError>
+where
+    P: prost::Message + Default,
+    B: serde::de::DeserializeOwned,
+{
+    match prost::Message::decode(decompressed_input).map(DecodedField::Proto) {
+        Ok(data_proto) => Ok(data_proto),
+        Err(prost_err) => {
+            match bincode::deserialize(decompressed_input).map(DecodedField::Bincode) {
+                Ok(data_bincode) => Ok(data_bincode),
+                Err(bincode_err) => {
+                    let err = Of1StreamError::DecodeField {
+                        slot,
+                        field_name,
+                        prost_err: prost_err.to_string(),
+                        bincode_err: bincode_err.to_string(),
+                    };
+                    Err(err)
+                }
+            }
+        }
+    }
+}
+
+/// Decode transaction metadata that may be encoded in either protobuf or bincode format,
+/// depending on the epoch. Bincode deserialization handles multiple legacy formats internally
+/// via [`solana_storage_proto::StoredTransactionStatusMetaVersioned`].
+///
+/// Transaction metadata passed in should already be ZSTD decompressed.
+fn decode_tx_meta(
+    slot: solana_clock::Slot,
+    decompressed_tx_meta: &[u8],
+) -> Result<DecodedTransactionStatusMeta, Of1StreamError> {
+    // Try protobuf first.
+    match prost::Message::decode(decompressed_tx_meta) {
+        Ok(proto_meta) => Ok(DecodedField::Proto(proto_meta)),
+        Err(prost_err) => {
+            // Try all bincode versions (current, legacy v2, legacy v1).
+            match solana_storage_proto::StoredTransactionStatusMetaVersioned::from_bincode(
+                decompressed_tx_meta,
+            ) {
+                Ok(meta) => Ok(DecodedField::Bincode(meta)),
+                Err(bincode_err) => {
+                    let err = Of1StreamError::DecodeField {
+                        slot,
+                        field_name: TX_STATUS_META_FIELD,
+                        prost_err: prost_err.to_string(),
+                        bincode_err: bincode_err.to_string(),
+                    };
+                    // Logging the full decompressed transaction metadata can be helpful for
+                    // debugging decoding issues, even though it can be large and clutter the
+                    // logs.
+                    tracing::error!(
+                        data = ?decompressed_tx_meta,
+                        error = ?err,
+                        error_source = monitoring::logging::error_source(&err),
+                        "failed to decode transaction status meta"
+                    );
+
+                    Err(err)
+                }
+            }
+        }
+    }
+}
+
+fn zstd_decompress(field_name: &'static str, input: &[u8]) -> Result<Vec<u8>, Of1StreamError> {
+    zstd::decode_all(input).map_err(|err| Of1StreamError::Zstd {
+        field_name,
+        error: err.to_string(),
+    })
 }
 
 type ConnectFuture = Pin<Box<dyn Future<Output = reqwest::Result<reqwest::Response>> + Send>>;

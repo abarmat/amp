@@ -149,7 +149,7 @@ impl Transaction {
                 }
 
                 of1_client::DecodedTransactionStatusMeta::Bincode(stored_meta) => {
-                    TransactionStatusMeta::from_stored_meta(slot, tx_index, stored_meta)
+                    TransactionStatusMeta::from_stored_meta(slot, tx_index, stored_meta.into())
                 }
             })
             .transpose()?;
