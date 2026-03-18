@@ -32,6 +32,7 @@ rustls.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 solana-datasets = { path = "../../extractors/solana" }
+tempo-datasets = { path = "../../extractors/tempo" }
 thiserror.workspace = true
 tokio.workspace = true
 toml.workspace = true

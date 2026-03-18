@@ -61,6 +61,7 @@ sqlx = { version = "0.8.3", features = ["postgres", "runtime-tokio"] }
 serde_yaml.workspace = true
 server = { path = "../crates/services/server" }
 solana-datasets = { path = "../crates/extractors/solana" }
+tempo-datasets = { path = "../crates/extractors/tempo" }
 tempfile.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

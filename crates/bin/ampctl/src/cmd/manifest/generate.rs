@@ -10,6 +10,7 @@
 //! - **evm-rpc**: EVM RPC dataset manifests
 //! - **firehose**: Firehose dataset manifests
 //! - **solana**: Solana dataset manifests
+//! - **tempo**: Tempo dataset manifests
 //!
 //! Note: Derived datasets are not supported for automatic generation as they
 //! require custom SQL transformation definitions.
@@ -38,11 +39,12 @@ use evm_rpc_datasets::EvmRpcDatasetKind;
 use firehose_datasets::FirehoseDatasetKind;
 use monitoring::logging;
 use solana_datasets::SolanaDatasetKind;
+use tempo_datasets::TempoDatasetKind;
 
 /// Command-line arguments for the `manifest generate` command.
 #[derive(Debug, clap::Args)]
 pub struct Args {
-    /// Kind of the dataset (evm-rpc, firehose, solana).
+    /// Kind of the dataset (evm-rpc, firehose, solana, tempo).
     #[arg(long, required = true)]
     pub kind: DatasetKindStr,
 
@@ -145,6 +147,8 @@ where
         generate_firehose_manifest(network, start_block, finalized_blocks_only)?
     } else if kind == SolanaDatasetKind {
         generate_solana_manifest(network, start_block, finalized_blocks_only)?
+    } else if kind == TempoDatasetKind {
+        generate_tempo_manifest(network, start_block, finalized_blocks_only)?
     } else {
         return Err(Error::UnsupportedKind(kind.clone()));
     };
@@ -246,6 +250,36 @@ fn generate_firehose_manifest(
     serde_json::to_vec_pretty(&manifest).map_err(Error::Serialization)
 }
 
+/// Generate a Tempo dataset manifest.
+#[inline]
+fn generate_tempo_manifest(
+    network: NetworkId,
+    start_block: u64,
+    finalized_blocks_only: bool,
+) -> Result<Vec<u8>, Error> {
+    let tables = tempo_datasets::tables::all(&network)
+        .iter()
+        .map(|table| {
+            let schema = table_schema_from_logical_table(table);
+            let manifest_table = ManifestTable {
+                schema,
+                network: network.clone(),
+            };
+            (table.name().to_string(), manifest_table)
+        })
+        .collect();
+
+    let manifest = tempo_datasets::Manifest {
+        kind: TempoDatasetKind,
+        network,
+        start_block,
+        finalized_blocks_only,
+        tables,
+    };
+
+    serde_json::to_vec_pretty(&manifest).map_err(Error::Serialization)
+}
+
 /// Create a TableSchema from a logical table
 fn table_schema_from_logical_table(table: &Table) -> TableSchema {
     let fields: Vec<Field> = table
@@ -278,7 +312,7 @@ pub enum Error {
     /// Unsupported dataset kind.
     ///
     /// This occurs when the provided dataset kind is not recognized by the manifest generator.
-    /// Supported kinds are: evm-rpc, firehose, solana.
+    /// Supported kinds are: evm-rpc, firehose, solana, tempo.
     #[error("Unsupported dataset kind '{0}'")]
     UnsupportedKind(DatasetKindStr),
 
