@@ -23,9 +23,7 @@ use datafusion::{
     prelude::Expr,
     sql::parser,
 };
-use datafusion_tracing::{
-    InstrumentationOptions, instrument_with_info_spans, pretty_format_compact_batch,
-};
+use datafusion_tracing::{InstrumentationOptions, instrument_with_info_spans};
 use datasets_common::network_id::NetworkId;
 use futures::{TryStreamExt, stream};
 use js_runtime::isolate_pool::IsolatePool;
@@ -949,14 +947,9 @@ fn print_physical_plan(plan: &dyn ExecutionPlan) -> String {
     sanitize_parquet_paths(&plan_str)
 }
 
-/// Creates an instrumentation rule that captures metrics and provides previews of data during execution.
+/// Creates an instrumentation rule that captures metrics during execution.
 pub fn create_instrumentation_rule() -> Arc<dyn PhysicalOptimizerRule + Send + Sync> {
-    let options_builder = InstrumentationOptions::builder()
-        .record_metrics(true)
-        .preview_limit(5)
-        .preview_fn(Arc::new(|batch: &RecordBatch| {
-            pretty_format_compact_batch(batch, 64, 3, 10).map(|fmt| fmt.to_string())
-        }));
+    let options_builder = InstrumentationOptions::builder().record_metrics(true);
 
     instrument_with_info_spans!(
         options: options_builder.build(),

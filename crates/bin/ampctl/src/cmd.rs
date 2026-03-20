@@ -3,4 +3,5 @@ pub mod job;
 pub mod manifest;
 pub mod provider;
 pub mod table;
+pub mod trace;
 pub mod worker;

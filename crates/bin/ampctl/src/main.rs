@@ -68,6 +68,11 @@ enum Commands {
     #[command(long_about = include_str!("cmd/worker__long_about.md"))]
     Worker(cmd::worker::Commands),
 
+    /// Generate trace performance reports and search Jaeger
+    #[command(subcommand)]
+    #[command(long_about = include_str!("cmd/trace__long_about.md"))]
+    Trace(cmd::trace::Commands),
+
     /// Verify dataset integrity
     #[command()]
     Verify(verification::Args),
@@ -83,6 +88,7 @@ async fn run() -> anyhow::Result<()> {
         Commands::Dataset(command) => cmd::dataset::run(command).await?,
         Commands::Table(command) => cmd::table::run(command).await?,
         Commands::Worker(command) => cmd::worker::run(command).await?,
+        Commands::Trace(command) => cmd::trace::run(command).await?,
         Commands::Verify(args) => verification::run(args).await?,
     }
 
