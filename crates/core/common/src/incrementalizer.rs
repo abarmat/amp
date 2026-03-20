@@ -61,7 +61,7 @@ impl BlockNumForm {
 /// ## Special cases
 /// - If a join as an `on` condition that is an inequality on `_block_num`, e.g. `l._block_num <= r._block_num`, then Δ(L⋈R)=(L[t−1]​⋈ΔR)∪(ΔL⋈ΔR), a term is optimized away.
 ///   This is because the inequality can be relaxed to `start <= r_block_num`. More generally, if the `on` clause can be relaxed by a lower start bound, we can push it down and potentially eliminate a term. This is not yet implemented.
-/// - If a join has a `r._block_num = l.block_num` condition, then Δ(L⋈R)=ΔL⋈ΔR. These joins may stack with each other and with linear operators, or on top of output of general joins. This special case is not yet implemented.
+/// - If a join has a `l._block_num = r._block_num` condition, then Δ(L⋈R)=ΔL⋈ΔR. These joins may stack with each other and with linear operators, or on top of output of general joins.
 ///
 /// ## Further reading
 /// - The inner join update formula is well-known and commonly implemented in incremental view maintenance systems. For one academic reference see:
@@ -123,7 +123,13 @@ impl TreeNodeRewriter for Incrementalizer {
         match incremental_op_kind(&node, BlockNumForm::Propagated)
             .map_err(|e| DataFusionError::External(e.into()))?
         {
-            IncrementalOpKind::Linear => Ok(Transformed::no(node)),
+            IncrementalOpKind::Linear | IncrementalOpKind::BlockNumEqJoin => {
+                // Linear ops and _block_num equality joins just push the current range
+                // to both children via normal tree recursion. For BlockNumEqJoin this works
+                // because _block_num equality guarantees temporal alignment:
+                // Δ(L⋈R) = ΔL⋈ΔR and History(L⋈R) = History(L)⋈History(R).
+                Ok(Transformed::no(node))
+            }
             IncrementalOpKind::InnerJoin => {
                 let LogicalPlan::Join(join) = node else {
                     unreachable!("IncrementalOpKind::InnerJoin only returned for Join nodes")
@@ -279,6 +285,9 @@ pub enum NonIncrementalQueryError {
 pub enum IncrementalOpKind {
     Linear,
     InnerJoin,
+    /// An inner join with `l._block_num = r._block_num` in its equi-join conditions.
+    /// Acts like a linear operator: the range filter can be pushed to both children.
+    BlockNumEqJoin,
     Table,
 }
 
@@ -305,12 +314,13 @@ pub fn incremental_op_kind(
 
         // Joins
         Join(join) => match join.join_type {
-            // TODO: detect and split out `l._block_num = r._block_num` joins
-            JoinType::Inner => Ok(InnerJoin),
-
-            // Semi-joins are just projections of inner joins
-            JoinType::LeftSemi => Ok(InnerJoin),
-            JoinType::RightSemi => Ok(InnerJoin),
+            JoinType::Inner | JoinType::LeftSemi | JoinType::RightSemi => {
+                if has_block_num_eq_condition(&join.on) {
+                    Ok(BlockNumEqJoin)
+                } else {
+                    Ok(InnerJoin)
+                }
+            }
 
             // Outer and anti joins are not incremental
             JoinType::Left
@@ -358,6 +368,16 @@ pub fn incremental_op_kind(
         Window(_) => Err(NonIncremental(NonIncrementalOp::Window)),
         RecursiveQuery(_) => Err(NonIncremental(NonIncrementalOp::RecursiveQuery)),
     }
+}
+
+/// Returns true if any equi-join condition pair equates `_block_num` columns on both sides.
+fn has_block_num_eq_condition(on: &[(Expr, Expr)]) -> bool {
+    on.iter()
+        .any(|(l, r)| is_block_num_col(l) && is_block_num_col(r))
+}
+
+fn is_block_num_col(expr: &Expr) -> bool {
+    matches!(expr, Expr::Column(c) if c.name == RESERVED_BLOCK_NUM_COLUMN_NAME)
 }
 
 fn empty_relation(schema: DFSchemaRef) -> EmptyRelation {

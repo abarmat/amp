@@ -69,3 +69,29 @@ async fn streaming_join_with_reorg() {
         .await
         .expect("Failed to run streaming join with reorg spec");
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn streaming_join_block_num_eq() {
+    logging::init();
+
+    let test_ctx = TestCtxBuilder::new("streaming_join_block_num_eq")
+        .with_anvil_ipc()
+        .with_dataset_manifest("anvil_rpc")
+        .build()
+        .await
+        .expect("Failed to create test environment");
+
+    let mut client = test_ctx
+        .new_flight_client()
+        .await
+        .expect("Failed to connect FlightClient");
+
+    run_spec(
+        "streaming-join-block-num-eq-anvil",
+        &test_ctx,
+        &mut client,
+        None,
+    )
+    .await
+    .expect("Failed to run streaming join block_num eq spec");
+}
