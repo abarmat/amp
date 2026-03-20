@@ -425,12 +425,12 @@ impl Client {
                         yield rpc_to_rows(block, block_receipts, &self.network).recoverable();
                     }
                 }
-
+                let total_blocks_to_stream = end_block - start_block + 1;
                 tracing::info!(
                     "Progress {}/{} ({}%) blocks (with {} txns) in {}ms",
                     blocks_completed,
-                    end_block - start_block + 1,
-                    (start_block as f32 / end_block as f32) * 100.0,
+                    total_blocks_to_stream,
+                    (blocks_completed as f32 / total_blocks_to_stream as f32) * 100.0,
                     txns_completed,
                     start.elapsed().as_millis()
                 );
