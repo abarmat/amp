@@ -13,7 +13,7 @@ use datafusion::{
         physical_plan::{FileGroup, FileScanConfigBuilder, ParquetSource},
     },
     error::{DataFusionError, Result as DataFusionResult},
-    logical_expr::{ScalarUDF, SortExpr, col, utils::conjunction},
+    logical_expr::{ScalarUDF, SortExpr, TableProviderFilterPushDown, col, utils::conjunction},
     physical_expr::LexOrdering,
     physical_plan::{ExecutionPlan, PhysicalExpr, empty::EmptyExec},
     prelude::Expr,
@@ -21,11 +21,12 @@ use datafusion::{
 use datafusion_datasource::compute_all_files_statistics;
 use futures::{Stream, StreamExt as _};
 
+use super::block_num_filter::{filters_maybe_satisfiable_for_range, references_block_num};
 use crate::{
     BlockRange,
     catalog::logical::LogicalTable,
     physical_table::{
-        MultiNetworkSegmentsError, SnapshotError, resolved::ResolvedFile,
+        MultiNetworkSegmentsError, SnapshotError, segments::Segment,
         snapshot::TableSnapshot as PhyTableSnapshot, table::PhysicalTable,
     },
     sql::TableReference,
@@ -115,14 +116,14 @@ pub struct FromCatalogError(#[source] pub SnapshotError);
 /// The query execution wrapper over a resolved physical table.
 ///
 /// Wraps `physical_table::TableSnapshot` with DataFusion execution concerns.
-/// Does not import `Segment`, `Chain`, or `canonical_chain` — works entirely with
-/// [`ResolvedFile`] values produced by `physical_table::TableSnapshot`.
+/// Holds [`Segment`] values from the canonical chain, giving the execution layer
+/// access to block ranges for file-level pruning.
 #[derive(Debug, Clone)]
 pub struct QueryableSnapshot {
     /// The underlying physical table providing storage access.
     physical_table: Arc<PhysicalTable>,
-    /// Parquet files resolved from the table snapshot's canonical chain.
-    resolved_files: Vec<ResolvedFile>,
+    /// Segments from the table snapshot's canonical chain.
+    segments: Vec<Segment>,
     /// The contiguous block range covered by synced data, if any.
     synced_range: Option<BlockRange>,
     /// Factory for creating parquet readers with caching and store access.
@@ -150,7 +151,7 @@ impl QueryableSnapshot {
         });
         Ok(Self {
             physical_table: snapshot.physical_table().clone(),
-            resolved_files: snapshot.resolved_files(),
+            segments: snapshot.canonical_segments().to_vec(),
             synced_range: snapshot.synced_range()?,
             reader_factory,
             sql_schema_name,
@@ -226,28 +227,31 @@ impl QueryableSnapshot {
         Ok(predicate)
     }
 
-    /// Converts a resolved file into a DataFusion `PartitionedFile` with cached metadata.
+    /// Converts a segment into a DataFusion `PartitionedFile` with cached metadata.
     async fn to_partitioned_file(
         &self,
-        file: &ResolvedFile,
+        segment: &Segment,
     ) -> Result<PartitionedFile, GetCachedMetadataError> {
-        let metadata = self.reader_factory.get_cached_metadata(file.id).await?;
-        let pf = PartitionedFile::from(file.object.clone())
-            .with_extensions(Arc::new(file.id))
+        let metadata = self
+            .reader_factory
+            .get_cached_metadata(segment.id())
+            .await?;
+        let pf = PartitionedFile::from(segment.object().clone())
+            .with_extensions(Arc::new(segment.id()))
             .with_statistics(metadata.statistics);
         Ok(pf)
     }
 
     /// Resolves file metadata and computes statistics for the scan plan.
-    #[tracing::instrument(skip_all, err, fields(files = self.resolved_files.len()))]
     async fn resolve_file_groups(
         &self,
+        segments: &[&Segment],
         target_partitions: usize,
         table_schema: SchemaRef,
     ) -> DataFusionResult<(Vec<FileGroup>, datafusion::common::Statistics)> {
-        let file_count = self.resolved_files.len();
+        let file_count = segments.len();
         let file_stream =
-            futures::stream::iter(self.resolved_files.iter()).then(|f| self.to_partitioned_file(f));
+            futures::stream::iter(segments.iter()).then(|s| self.to_partitioned_file(s));
         let partitioned = round_robin(file_stream, file_count, target_partitions)
             .await
             .map_err(|e| DataFusionError::External(e.into()))?;
@@ -269,7 +273,23 @@ impl TableProvider for QueryableSnapshot {
         TableType::Base
     }
 
-    #[tracing::instrument(skip_all, err, fields(table = %self.table_ref(), files = %self.resolved_files.len()))]
+    fn supports_filters_pushdown(
+        &self,
+        filters: &[&Expr],
+    ) -> DataFusionResult<Vec<TableProviderFilterPushDown>> {
+        Ok(filters
+            .iter()
+            .map(|f| {
+                if references_block_num(f) {
+                    TableProviderFilterPushDown::Inexact
+                } else {
+                    TableProviderFilterPushDown::Unsupported
+                }
+            })
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all, err, fields(table = %self.table_ref(), segments = %self.segments.len()))]
     async fn scan(
         &self,
         state: &dyn Session,
@@ -277,11 +297,34 @@ impl TableProvider for QueryableSnapshot {
         filters: &[Expr],
         limit: Option<usize>,
     ) -> DataFusionResult<Arc<dyn ExecutionPlan>> {
-        tracing::debug!("creating scan execution plan");
-
         if self.synced_range.is_none() {
-            // This is necessary to work around empty tables tripping the DF sanity checker
             tracing::debug!("table has no synced data, returning empty execution plan");
+            let projected_schema = project_schema(&self.schema(), projection)?;
+            return Ok(Arc::new(EmptyExec::new(projected_schema)));
+        }
+
+        // Prune segments whose block ranges are provably unsatisfiable
+        // given the pushed-down filters.
+        let df_schema = Arc::new(DFSchema::try_from(self.physical_table.schema())?);
+        let segments: Vec<&Segment> = self
+            .segments
+            .iter()
+            .filter(|s| {
+                let range = s.single_range();
+                filters_maybe_satisfiable_for_range(filters, &df_schema, range.start(), range.end())
+            })
+            .collect();
+
+        if segments.len() != self.segments.len() {
+            tracing::debug!(
+                total = self.segments.len(),
+                kept = segments.len(),
+                pruned = self.segments.len() - segments.len(),
+                "pruned segments based on block range filters"
+            );
+        }
+
+        if segments.is_empty() {
             let projected_schema = project_schema(&self.schema(), projection)?;
             return Ok(Arc::new(EmptyExec::new(projected_schema)));
         }
@@ -289,10 +332,9 @@ impl TableProvider for QueryableSnapshot {
         let target_partitions = state.config_options().execution.target_partitions;
         let table_schema = self.physical_table.schema();
         let (file_groups, statistics) = self
-            .resolve_file_groups(target_partitions, table_schema.clone())
+            .resolve_file_groups(&segments, target_partitions, table_schema.clone())
             .await?;
         if statistics.num_rows == Precision::Absent {
-            // This log likely signifies a bug in our statistics fetching.
             tracing::warn!("Table has no row count statistics. Queries may be inefficient.");
         }
 

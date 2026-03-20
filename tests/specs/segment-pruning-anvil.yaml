@@ -1,0 +1,105 @@
+# Segment pruning tests using Anvil
+#
+# Verifies that _block_num filters correctly prune segments and return
+# the right data. Creates two segments (blocks 0-3 and 4-7) then queries
+# with various _block_num predicates.
+
+- anvil: {}
+
+# First segment: blocks 0-3
+- name: mine_first_batch
+  anvil_mine: 3
+
+- name: dump_first_segment
+  dataset: _/anvil_rpc@0.0.0
+  end: 3
+
+# Second segment: blocks 4-7
+- name: mine_second_batch
+  anvil_mine: 4
+
+- name: dump_second_segment
+  dataset: _/anvil_rpc@0.0.0
+  end: 7
+
+# All blocks (no filter) — baseline
+- name: all_blocks
+  query: SELECT block_num FROM anvil_rpc.blocks ORDER BY block_num
+  results: |
+    [
+      {"block_num": 0},
+      {"block_num": 1},
+      {"block_num": 2},
+      {"block_num": 3},
+      {"block_num": 4},
+      {"block_num": 5},
+      {"block_num": 6},
+      {"block_num": 7}
+    ]
+
+# Filter: only second segment
+- name: block_num_gt_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num > 3 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 4},
+      {"block_num": 5},
+      {"block_num": 6},
+      {"block_num": 7}
+    ]
+
+# Filter: only first segment
+- name: block_num_lt_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num < 4 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 0},
+      {"block_num": 1},
+      {"block_num": 2},
+      {"block_num": 3}
+    ]
+
+# Range filter spanning both segments
+- name: block_num_range_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num >= 2 AND _block_num <= 5 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 2},
+      {"block_num": 3},
+      {"block_num": 4},
+      {"block_num": 5}
+    ]
+
+# Equality filter
+- name: block_num_eq_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num = 6 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 6}
+    ]
+
+# Filter that excludes all segments
+- name: block_num_out_of_range
+  query: SELECT COUNT(*) AS cnt FROM anvil_rpc.blocks WHERE _block_num > 100
+  results: |
+    [
+      {"cnt": 0}
+    ]
+
+# gte filter
+- name: block_num_gte_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num >= 6 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 6},
+      {"block_num": 7}
+    ]
+
+# lte filter
+- name: block_num_lte_filter
+  query: SELECT block_num FROM anvil_rpc.blocks WHERE _block_num <= 1 ORDER BY block_num
+  results: |
+    [
+      {"block_num": 0},
+      {"block_num": 1}
+    ]

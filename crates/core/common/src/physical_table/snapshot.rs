@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     BlockRange,
-    physical_table::{resolved::ResolvedFile, segments::Segment, table::PhysicalTable},
+    physical_table::{segments::Segment, table::PhysicalTable},
 };
 
 /// A segment-resolved view of a table.
@@ -45,18 +45,6 @@ impl TableSnapshot {
 
     pub fn physical_table(&self) -> &Arc<PhysicalTable> {
         &self.physical_table
-    }
-
-    // Resolved file access (for execution layer)
-
-    pub fn resolved_files(&self) -> Vec<ResolvedFile> {
-        self.canonical_segments
-            .iter()
-            .map(|s| ResolvedFile {
-                id: s.id(),
-                object: s.object().clone(),
-            })
-            .collect()
     }
 
     pub fn file_count(&self) -> usize {
