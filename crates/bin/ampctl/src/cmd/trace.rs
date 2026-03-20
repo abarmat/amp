@@ -1,8 +1,30 @@
 mod fetch;
+mod flamegraph;
+mod jaeger;
 mod report;
 mod search;
+mod time;
+
+use std::path::Path;
+
+use anyhow::{Context, Result};
+use flamegraph::FlamegraphConfig;
 
 const SERVICE: &str = "tracing";
+
+/// Root span names for each report type.
+pub mod roots {
+    pub const QUERY: &[&str] = &["do_get"];
+    pub const DERIVED_DATASET: &[&str] = &[
+        "execute_microbatch",
+        "next_microbatch_range",
+        "write",
+        "close",
+        "register",
+        "send_location_change_notif",
+    ];
+    pub const RAW_DATASET: &[&str] = &["run_range"];
+}
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Commands {
@@ -71,4 +93,81 @@ pub fn parse_filters(filters: &[String]) -> anyhow::Result<Vec<(String, String)>
             Ok((k.to_string(), v.to_string()))
         })
         .collect()
+}
+
+/// Generate a full report: trace JSON, wallclock SVG, busy SVG, folded stacks.
+fn generate_report(trace: &jaeger::Trace, output_dir: &Path, prefix: &str) -> Result<()> {
+    std::fs::create_dir_all(output_dir)
+        .with_context(|| format!("creating {}", output_dir.display()))?;
+
+    // Save trace
+    let json_path = output_dir.join(format!("{prefix}_trace.json.gz"));
+    save_trace_gz(trace, &json_path)?;
+    eprintln!("Wrote trace to {}", json_path.display());
+
+    // Wallclock flamegraph
+    let wallclock_config = FlamegraphConfig {
+        min_duration_us: 0,
+        use_busy_time: false,
+    };
+    let wallclock_path = output_dir.join(format!("{prefix}_wallclock.svg"));
+    flamegraph::generate(trace, &wallclock_path, &wallclock_config)?;
+    eprintln!("Wrote wallclock flamegraph to {}", wallclock_path.display());
+
+    // Busy-time flamegraph
+    let busy_config = FlamegraphConfig {
+        min_duration_us: 0,
+        use_busy_time: true,
+    };
+    let busy_path = output_dir.join(format!("{prefix}_busy.svg"));
+    flamegraph::generate(trace, &busy_path, &busy_config)?;
+    eprintln!("Wrote busy-time flamegraph to {}", busy_path.display());
+
+    // Folded stacks
+    let folded_path = output_dir.join(format!("{prefix}_folded.txt"));
+    let folded = flamegraph::build_folded(trace, &wallclock_config)?;
+    let folded_text = folded.join("\n");
+    std::fs::write(&folded_path, &folded_text)?;
+    eprintln!("Wrote folded stacks to {}", folded_path.display());
+
+    Ok(())
+}
+
+/// Load a trace from a JSON or JSON.gz file.
+fn load_trace(path: &Path) -> Result<jaeger::Trace> {
+    let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+    if path.to_string_lossy().ends_with(".gz") {
+        use std::io::Read;
+
+        use flate2::read::GzDecoder;
+        let mut decoder = GzDecoder::new(&bytes[..]);
+        let mut json = String::new();
+        decoder.read_to_string(&mut json)?;
+        Ok(serde_json::from_str(&json)?)
+    } else {
+        Ok(serde_json::from_slice(&bytes)?)
+    }
+}
+
+/// Save a trace as gzipped JSON.
+fn save_trace_gz(trace: &jaeger::Trace, path: &Path) -> Result<()> {
+    use std::io::Write;
+
+    use flate2::{Compression, write::GzEncoder};
+    let json = serde_json::to_vec(trace)?;
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&json)?;
+    std::fs::write(path, encoder.finish()?)?;
+    Ok(())
+}
+
+/// Merge multiple Jaeger traces into one.
+fn merge_traces(traces: Vec<jaeger::Trace>) -> jaeger::Trace {
+    let mut iter = traces.into_iter();
+    let mut merged = iter.next().expect("at least one trace");
+    for trace in iter {
+        merged.spans.extend(trace.spans);
+        merged.processes.extend(trace.processes);
+    }
+    merged
 }

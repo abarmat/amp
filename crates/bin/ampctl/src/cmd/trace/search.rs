@@ -1,9 +1,7 @@
-use trace_report::{
-    jaeger,
+use super::{
+    FilterArgs, RemoteArgs, SERVICE, basic_auth, jaeger, parse_filters,
     time::{format_epoch_secs, parse_time},
 };
-
-use super::{FilterArgs, RemoteArgs, SERVICE, basic_auth, parse_filters};
 
 #[derive(Debug, clap::Args)]
 pub struct Args {

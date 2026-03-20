@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use trace_report::jaeger;
-
-use super::{RemoteArgs, basic_auth};
+use super::{RemoteArgs, basic_auth, jaeger};
 
 #[derive(Debug, clap::Args)]
 pub struct Args {
@@ -22,7 +20,7 @@ pub async fn run(args: Args) -> anyhow::Result<()> {
         jaeger::fetch_trace(&args.remote.jaeger_url, &args.trace_id, auth.as_deref()).await?;
 
     if args.output.to_string_lossy().ends_with(".gz") {
-        trace_report::save_trace_gz(&trace, &args.output)?;
+        super::save_trace_gz(&trace, &args.output)?;
     } else {
         let json = serde_json::to_vec(&trace)?;
         std::fs::write(&args.output, json)?;

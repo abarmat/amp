@@ -1359,6 +1359,7 @@ dependencies = [
  "amp-object-store",
  "amp-worker-core",
  "anyhow",
+ "chrono",
  "clap",
  "console",
  "datasets-common",
@@ -1366,6 +1367,8 @@ dependencies = [
  "datasets-raw",
  "evm-rpc-datasets",
  "firehose-datasets",
+ "flate2",
+ "inferno",
  "monitoring",
  "object_store",
  "reqwest 0.13.2",
@@ -1377,9 +1380,9 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "toml",
- "trace-report",
  "tracing",
  "url",
+ "urlencoding",
  "vergen-gitcl",
  "verification",
  "worker",
@@ -12905,20 +12908,6 @@ name = "tower-service"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
-
-[[package]]
-name = "trace-report"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "flate2",
- "inferno",
- "reqwest 0.13.2",
- "serde",
- "serde_json",
- "urlencoding",
-]
 
 [[package]]
 name = "tracing"

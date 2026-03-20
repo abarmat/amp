@@ -20,11 +20,14 @@ amp-worker-core = { path = "../../core/worker-core" }
 anyhow.workspace = true
 clap.workspace = true
 console = "0.16.1"
+chrono.workspace = true
 datasets-common = { path = "../../core/datasets-common" }
 datasets-derived = { path = "../../core/datasets-derived" }
 datasets-raw = { path = "../../core/datasets-raw" }
 evm-rpc-datasets = { path = "../../extractors/evm-rpc" }
 firehose-datasets = { path = "../../extractors/firehose" }
+flate2 = "1"
+inferno = "0.12"
 monitoring = { path = "../../core/monitoring" }
 object_store.workspace = true
 reqwest.workspace = true
@@ -34,8 +37,8 @@ serde_json.workspace = true
 solana-datasets = { path = "../../extractors/solana" }
 tempo-datasets = { path = "../../extractors/tempo" }
 thiserror.workspace = true
-trace-report = { path = "../../core/trace-report" }
 tokio.workspace = true
+urlencoding = "2"
 toml.workspace = true
 tracing.workspace = true
 url.workspace = true

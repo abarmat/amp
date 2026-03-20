@@ -29,6 +29,7 @@ use metadata_db::{
 };
 use monitoring::telemetry::metrics::{Counter, Gauge, Meter};
 use object_store::{ObjectMeta, ObjectStore, buffered::BufWriter, path::Path};
+use tracing::Instrument;
 use url::Url;
 use uuid::Uuid;
 
@@ -834,6 +835,7 @@ impl DataStore {
     ///
     /// The `schema` parameter is required to compute DataFusion statistics from the parquet
     /// metadata.
+    #[tracing::instrument(skip_all, fields(%file_id, cache_hit))]
     pub async fn get_cached_parquet_metadata(
         &self,
         file_id: FileId,
@@ -845,9 +847,13 @@ impl DataStore {
         let entry = cache
             .get_or_fetch(&file_id, || async move {
                 // Cache miss, fetch from database
-                let footer = metadata_db::files::get_footer_bytes(&metadata_db, file_id)
-                    .await
-                    .map_err(GetCachedMetadataError::FetchFooter)?;
+                let footer = async {
+                    metadata_db::files::get_footer_bytes(&metadata_db, file_id)
+                        .await
+                        .map_err(GetCachedMetadataError::FetchFooter)
+                }
+                .instrument(tracing::info_span!("fetch_footer_from_db"))
+                .await?;
 
                 let metadata = Arc::new(
                     ParquetMetaDataReader::new()
@@ -868,6 +874,9 @@ impl DataStore {
             })
             .await
             .map_err(GetCachedMetadataError::CacheError)?;
+
+        let cache_hit = matches!(entry.source(), Source::Memory);
+        tracing::Span::current().record("cache_hit", cache_hit);
 
         if let Some(metrics) = &self.cache_metrics {
             match entry.source() {

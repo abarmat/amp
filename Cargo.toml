@@ -34,7 +34,6 @@ members = [
     "crates/core/providers-solana/gen",
     "crates/core/providers-static",
     "crates/core/providers-static/gen",
-    "crates/core/trace-report",
     "crates/core/verification",
     "crates/core/worker-core",
     "crates/core/worker-datasets-derived",

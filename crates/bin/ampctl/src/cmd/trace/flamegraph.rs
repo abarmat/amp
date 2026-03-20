@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs::File, io::BufWriter, path::Path};
 use anyhow::{Context, Result};
 use inferno::flamegraph::{self, Options};
 
-use crate::jaeger::{Span, Trace};
+use super::jaeger::{Span, Trace};
 
 pub struct FlamegraphConfig {
     pub min_duration_us: u64,
