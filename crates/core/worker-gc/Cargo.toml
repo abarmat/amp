@@ -1,0 +1,18 @@
+[package]
+name = "amp-worker-gc"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+amp-data-store = { path = "../data-store" }
+amp-worker-core = { path = "../worker-core" }
+datasets-common = { path = "../datasets-common" }
+futures.workspace = true
+metadata-db = { path = "../metadata-db" }
+monitoring = { path = "../monitoring" }
+object_store.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

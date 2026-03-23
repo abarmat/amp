@@ -1362,6 +1362,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "amp-worker-gc"
+version = "0.1.0"
+dependencies = [
+ "amp-data-store",
+ "amp-worker-core",
+ "datasets-common",
+ "futures",
+ "metadata-db",
+ "monitoring",
+ "object_store",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "ampcc"
 version = "0.1.0"
 dependencies = [
@@ -13028,6 +13045,7 @@ dependencies = [
  "amp-providers-registry",
  "amp-providers-solana",
  "amp-worker-core",
+ "amp-worker-gc",
  "ampctl",
  "anyhow",
  "arrow-flight",

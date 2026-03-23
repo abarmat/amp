@@ -82,6 +82,7 @@ const AMP_CRATES: &[&str] = &[
     "amp_worker_core",
     "amp_worker_datasets_derived",
     "amp_worker_datasets_raw",
+    "amp_worker_gc",
     "ampcc",
     "ampctl",
     "ampd",

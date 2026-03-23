@@ -22,6 +22,7 @@ amp-parquet = { path = "../crates/core/parquet" }
 amp-providers-registry = { path = "../crates/core/providers-registry" }
 amp-providers-solana = { path = "../crates/core/providers-solana" }
 amp-worker-core = { path = "../crates/core/worker-core" }
+amp-worker-gc = { path = "../crates/core/worker-gc" }
 amp-client-admin = { package = "admin-client", path = "../crates/clients/admin" }
 ampctl = { path = "../crates/bin/ampctl" }
 anyhow.workspace = true

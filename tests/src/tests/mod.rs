@@ -16,6 +16,7 @@ mod it_dependencies;
 mod it_dump;
 mod it_functions;
 mod it_functions_eth_call;
+mod it_gc;
 mod it_joins;
 mod it_multi_network_batch;
 mod it_multi_table_continuous;
