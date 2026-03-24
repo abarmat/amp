@@ -231,13 +231,23 @@ impl SessionState {
                 FunctionReference::Qualified { schema, function } => Some(
                     datafusion::common::TableReference::partial(schema.as_str(), function.as_str()),
                 ),
+                FunctionReference::CatalogQualified {
+                    catalog,
+                    schema,
+                    function,
+                } => Some(datafusion::common::TableReference::full(
+                    catalog.as_str(),
+                    schema.as_str(),
+                    function.as_str(),
+                )),
                 FunctionReference::Bare { .. } => None,
             })
             .collect();
 
-        // All our refs use the default catalog (catalog-qualified refs are
-        // rejected upstream). Resolve only providers registered under names
-        // that appear in the references, to avoid unnecessary I/O.
+        // Resolve only providers registered under names that appear in the
+        // references, to avoid unnecessary I/O. Catalog-qualified refs
+        // (e.g., rpc.mainnet.eth_call) use their explicit catalog name;
+        // schema-qualified refs fall back to the default catalog.
         // LoD exception: navigating DataFusion's config API (third-party struct).
         let default_catalog = self
             .state

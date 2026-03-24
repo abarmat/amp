@@ -347,8 +347,7 @@ async fn statement_to_plan_with_catalog_qualified_table_in_pre_resolution_is_inv
 }
 
 #[tokio::test]
-async fn statement_to_schema_with_catalog_qualified_function_in_pre_resolution_is_invalid_plan_error()
- {
+async fn statement_to_schema_with_catalog_qualified_function_for_unresolved_schema_is_plan_error() {
     //* Given
     let (amp_func_catalog, _amp_func_schema_requests) = create_empty_mock_func_catalog();
     let session_config = default_session_config().expect("default session config should be valid");
@@ -356,6 +355,7 @@ async fn statement_to_schema_with_catalog_qualified_function_in_pre_resolution_i
         .with_func_catalog("amp", amp_func_catalog as Arc<dyn FuncAsyncCatalogProvider>)
         .build();
 
+    // Catalog-qualified function reference that resolves to a non-existent schema
     let stmt = parse_statement("SELECT amp.test_schema.identity_udf(1) AS projected");
 
     //* When
@@ -365,11 +365,9 @@ async fn statement_to_schema_with_catalog_qualified_function_in_pre_resolution_i
         .map(|p| p.schema().clone());
 
     //* Then
-    let error = result.expect_err("catalog-qualified function should fail pre-resolution");
-    assert!(
-        is_user_input_error(&error),
-        "catalog-qualified function references should be classified as invalid user input: {error:?}"
-    );
+    // SessionState does not tag errors as user input — that is PlanContext's
+    // responsibility. Here we only verify that planning fails.
+    result.expect_err("unresolved catalog-qualified function should fail planning");
 }
 
 #[tokio::test]

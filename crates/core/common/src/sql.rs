@@ -453,13 +453,13 @@ pub enum ResolveTableReferencesError<E = std::convert::Infallible> {
 ///
 /// Extracts function calls and resolves them into typed [`FunctionReference`] variants.
 /// Schema names are parsed using the generic type `T`.
-/// Fails fast if any function name has an invalid format (more than 2 parts) or if
-/// schema name parsing fails.
+/// Fails fast if any function name has an invalid format (more than 3 parts) or if
+/// schema/catalog name parsing fails.
 ///
 /// Supported formats:
 /// - `function` → [`FunctionReference::Bare`] (built-in DataFusion functions)
 /// - `schema.function` → [`FunctionReference::Qualified`] (dataset UDFs)
-/// - `catalog.schema.function` → Error (not supported)
+/// - `catalog.schema.function` → [`FunctionReference::CatalogQualified`] (e.g., `rpc.mainnet.eth_call`)
 pub fn resolve_function_references<T>(
     stmt: &Statement,
 ) -> Result<Vec<FunctionReference<T>>, ResolveFunctionReferencesError<T::Err>>
@@ -507,11 +507,33 @@ where
                     function: Arc::new(validated_func),
                 }
             }
-            [_catalog, _schema, _function] => {
-                // Catalog-qualified function references are not supported
-                return Err(ResolveFunctionReferencesError::CatalogQualifiedFunction {
-                    function_ref: func_ref_str,
-                });
+            [catalog, schema, function] => {
+                let validated_func = function.parse::<FuncName>().map_err(|err| {
+                    ResolveFunctionReferencesError::InvalidFunctionName {
+                        function: function.to_string(),
+                        source: err,
+                    }
+                })?;
+
+                let validated_catalog = catalog.parse::<T>().map_err(|err| {
+                    ResolveFunctionReferencesError::InvalidCatalogFormat {
+                        function_ref: func_ref_str.clone(),
+                        source: err,
+                    }
+                })?;
+
+                let validated_schema = schema.parse::<T>().map_err(|err| {
+                    ResolveFunctionReferencesError::InvalidSchemaFormat {
+                        function_ref: func_ref_str.clone(),
+                        source: err,
+                    }
+                })?;
+
+                FunctionReference::CatalogQualified {
+                    catalog: Arc::new(validated_catalog),
+                    schema: Arc::new(validated_schema),
+                    function: Arc::new(validated_func),
+                }
             }
             _ => {
                 // 4 or more parts - invalid format
@@ -554,6 +576,18 @@ pub enum FunctionReference<T = String> {
         /// The validated function name wrapped in Arc for efficient cloning
         function: Arc<FuncName>,
     },
+    /// A catalog-qualified function reference, e.g., "catalog.schema.function"
+    ///
+    /// These refer to functions in a specific catalog and schema,
+    /// e.g., `rpc.mainnet.eth_call`.
+    CatalogQualified {
+        /// The catalog containing the schema
+        catalog: Arc<T>,
+        /// The schema containing the function
+        schema: Arc<T>,
+        /// The validated function name wrapped in Arc for efficient cloning
+        function: Arc<FuncName>,
+    },
 }
 
 impl<T> FunctionReference<T> {
@@ -583,6 +617,7 @@ impl<T> FunctionReference<T> {
         match self {
             Self::Bare { function } => function,
             Self::Qualified { function, .. } => function,
+            Self::CatalogQualified { function, .. } => function,
         }
     }
 
@@ -591,6 +626,15 @@ impl<T> FunctionReference<T> {
         match self {
             Self::Bare { .. } => None,
             Self::Qualified { schema, .. } => Some(schema),
+            Self::CatalogQualified { schema, .. } => Some(schema),
+        }
+    }
+
+    /// Returns the catalog name if catalog-qualified, `None` otherwise.
+    pub fn catalog(&self) -> Option<&T> {
+        match self {
+            Self::Bare { .. } | Self::Qualified { .. } => None,
+            Self::CatalogQualified { catalog, .. } => Some(catalog),
         }
     }
 }
@@ -612,6 +656,15 @@ where
                 schema: Arc::new(schema.to_string()),
                 function: Arc::clone(function),
             },
+            Self::CatalogQualified {
+                catalog,
+                schema,
+                function,
+            } => FunctionReference::CatalogQualified {
+                catalog: Arc::new(catalog.to_string()),
+                schema: Arc::new(schema.to_string()),
+                function: Arc::clone(function),
+            },
         }
     }
 
@@ -623,6 +676,15 @@ where
         match self {
             Self::Bare { function } => FunctionReference::Bare { function },
             Self::Qualified { schema, function } => FunctionReference::Qualified {
+                schema: Arc::new(schema.to_string()),
+                function,
+            },
+            Self::CatalogQualified {
+                catalog,
+                schema,
+                function,
+            } => FunctionReference::CatalogQualified {
+                catalog: Arc::new(catalog.to_string()),
                 schema: Arc::new(schema.to_string()),
                 function,
             },
@@ -638,6 +700,11 @@ where
         match self {
             Self::Bare { function } => write!(f, "{}", function),
             Self::Qualified { schema, function } => write!(f, "{}.{}", schema, function),
+            Self::CatalogQualified {
+                catalog,
+                schema,
+                function,
+            } => write!(f, "{}.{}.{}", catalog, schema, function),
         }
     }
 }
@@ -654,24 +721,11 @@ pub enum ResolveFunctionReferencesError<E = std::convert::Infallible> {
     #[error("Failed to resolve function references: {0}")]
     FunctionReferenceResolution(#[from] AllFunctionNamesError),
 
-    /// Function reference is catalog-qualified (not supported)
-    ///
-    /// This occurs when a function name contains a catalog qualifier (3 parts).
-    /// Catalog-qualified references are not supported - only bare function names
-    /// (1 part) and schema-qualified names (2 parts) are allowed.
-    ///
-    /// # Examples
-    ///
-    /// - Valid: `"count"`, `"eth_mainnet.decode_log"`
-    /// - Invalid: `"catalog.schema.function"`, `"a.b.c.d"`
-    #[error("Catalog-qualified function references are not supported: {function_ref}")]
-    CatalogQualifiedFunction { function_ref: String },
-
     /// Function reference has invalid format (wrong number of parts)
     ///
     /// This occurs when a function name contains 4 or more dot-separated parts.
     /// Only bare functions (1 part), qualified functions (2 parts), and catalog-qualified
-    /// functions (3 parts - rejected separately) are recognized.
+    /// functions (3 parts) are recognized.
     #[error("Invalid function format (expected 1-3 parts, got more): {function_ref}")]
     InvalidFunctionFormat { function_ref: String },
 
@@ -706,6 +760,18 @@ pub enum ResolveFunctionReferencesError<E = std::convert::Infallible> {
     /// schema name fails validation according to the type's `FromStr` implementation.
     #[error("Invalid schema format in function reference '{function_ref}': {source}")]
     InvalidSchemaFormat {
+        function_ref: String,
+        #[source]
+        source: E,
+    },
+
+    /// Catalog name has invalid format
+    ///
+    /// This occurs when a catalog name in a catalog-qualified function reference cannot be
+    /// parsed into the target type. Similar to `InvalidSchemaFormat` but for the catalog part
+    /// of a 3-part reference like `catalog.schema.function`.
+    #[error("Invalid catalog format in function reference '{function_ref}': {source}")]
+    InvalidCatalogFormat {
         function_ref: String,
         #[source]
         source: E,

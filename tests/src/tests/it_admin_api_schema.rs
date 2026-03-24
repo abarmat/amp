@@ -1526,7 +1526,7 @@ async fn function_with_catalog_qualification_fails() {
     //* Then
     assert_eq!(
         resp.status(),
-        StatusCode::BAD_REQUEST,
+        StatusCode::INTERNAL_SERVER_ERROR,
         "schema resolution should fail with catalog-qualified function"
     );
 
@@ -1535,10 +1535,11 @@ async fn function_with_catalog_qualification_fails() {
         .await
         .expect("failed to parse error response JSON");
 
-    // The error should indicate invalid plan (catalog-qualified functions caught by planner)
+    // Unregistered catalog functions fail during DataFusion planning (not pre-resolution),
+    // so the error is not tagged as user input and returns as a schema inference error.
     assert_eq!(
-        response.error_code, "INVALID_PLAN",
-        "should return INVALID_PLAN for catalog-qualified function"
+        response.error_code, "SCHEMA_INFERENCE",
+        "should return SCHEMA_INFERENCE for unregistered catalog function"
     );
 }
 
