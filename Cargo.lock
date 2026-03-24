@@ -1094,7 +1094,6 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "amp-providers-common",
- "anyhow",
  "async-stream",
  "datasets-common",
  "datasets-raw",
@@ -1264,7 +1263,6 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "amp-providers-common",
- "anyhow",
  "async-stream",
  "datasets-common",
  "datasets-raw",

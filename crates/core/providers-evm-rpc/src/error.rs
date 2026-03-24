@@ -132,6 +132,34 @@ pub enum OverflowSource {
     BigInt(#[source] FromUintError<i128>),
 }
 
+/// Errors that occur when fetching block receipts during unbatched block streaming.
+///
+/// When streaming blocks with per-block receipt fetching, the EVM RPC client
+/// makes a separate request for each block's receipts. These errors cover
+/// transport failures and missing receipt data.
+#[derive(Debug, thiserror::Error)]
+pub enum FetchReceiptsError {
+    /// The RPC call to fetch receipts failed.
+    ///
+    /// This occurs when the transport layer encounters an error while fetching
+    /// receipts for a specific block. Common causes include network timeouts,
+    /// connection drops, or RPC node errors.
+    #[error("error fetching receipts for block {block_num}")]
+    Rpc {
+        block_num: u64,
+        #[source]
+        err: ClientError,
+    },
+
+    /// No receipts were returned for a block.
+    ///
+    /// The RPC returned `null` for a block that was expected to have receipts.
+    /// This may indicate an incomplete RPC response or a node that does not
+    /// support the `eth_getBlockReceipts` method.
+    #[error("no receipts returned for block {block_num}")]
+    Empty { block_num: u64 },
+}
+
 /// Error connecting to an EVM RPC provider.
 ///
 /// This error wraps the underlying Alloy transport error that occurs when

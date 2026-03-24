@@ -15,7 +15,6 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use amp_providers_common::{network_id::NetworkId, provider_name::ProviderName};
-use anyhow::Context;
 use async_stream::stream;
 use datasets_common::block_num::BlockNum;
 use datasets_raw::{
@@ -27,7 +26,7 @@ use tempo_alloy::{TempoNetwork, rpc::TempoTransactionReceipt};
 
 use crate::{
     convert::{TempoRpcBlock, rpc_to_rows},
-    error::{BatchRequestError, BatchingError, ClientError},
+    error::{BatchRequestError, BatchingError, ClientError, FetchReceiptsError},
     provider::Auth,
 };
 
@@ -296,22 +295,23 @@ impl Client {
                     }
                     received_receipts
                 } else {
-                    let receipts_result = self.client
+                    let rpc_result = self.client
                         .with_metrics("eth_getBlockReceipts", async |c| {
                             c.get_block_receipts(BlockId::Number(block_num)).await
                         })
-                        .await
-                        .with_context(|| format!("error fetching receipts for block {}", block.number()))
-                        .and_then(|receipts| {
-                            let mut receipts = receipts.context("no receipts returned for block")?;
-                            receipts.sort_by(|r1, r2| r1.transaction_index.cmp(&r2.transaction_index));
-                            Ok(receipts)
-                        });
+                        .await;
 
-                    match receipts_result {
-                        Ok(receipts) => receipts,
+                    match rpc_result {
+                        Ok(Some(mut receipts)) => {
+                            receipts.sort_unstable_by_key(|r| r.transaction_index);
+                            receipts
+                        }
+                        Ok(None) => {
+                            yield Err(FetchReceiptsError::Empty { block_num: block.number() }).recoverable();
+                            continue;
+                        }
                         Err(err) => {
-                            yield Err(err).recoverable();
+                            yield Err(FetchReceiptsError::Rpc { block_num: block.number(), err: ClientError::Transport(err) }).recoverable();
                             continue;
                         }
                     }
@@ -417,7 +417,7 @@ impl Client {
                     for block in blocks {
                         let mut block_receipts: Vec<_> =
                             all_receipts.by_ref().take(block.transactions.len()).collect();
-                        block_receipts.sort_by(|r1, r2| r1.transaction_index.cmp(&r2.transaction_index));
+                        block_receipts.sort_unstable_by_key(|r| r.transaction_index);
                         blocks_completed += 1;
                         txns_completed += block.transactions.len();
                         yield rpc_to_rows(block, block_receipts, &self.network).recoverable();
@@ -480,9 +480,11 @@ impl BlockStreamer for Client {
             true => BlockNumberOrTag::Finalized,
             false => BlockNumberOrTag::Latest,
         };
-        let _permit = self.limiter.acquire().await.map_err(|_| {
-            LatestBlockError::from(anyhow::anyhow!("rate limiter semaphore closed"))
-        })?;
+        let _permit = self
+            .limiter
+            .acquire()
+            .await
+            .map_err(|err| LatestBlockError::from(BatchingError::RateLimitAcquire(err)))?;
         let block = self
             .client
             .with_metrics("eth_getBlockByNumber", async |c| {
