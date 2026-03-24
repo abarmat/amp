@@ -1303,6 +1303,7 @@ dependencies = [
  "datafusion",
  "datasets-common",
  "futures",
+ "hex",
  "metadata-db",
  "monitoring",
  "object_store",
@@ -1310,6 +1311,7 @@ dependencies = [
  "parking_lot",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -1367,7 +1369,6 @@ version = "0.1.0"
 dependencies = [
  "amp-data-store",
  "amp-worker-core",
- "datasets-common",
  "futures",
  "metadata-db",
  "monitoring",

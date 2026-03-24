@@ -177,7 +177,7 @@ pub async fn handler(
     // Schedule the extraction job using the scheduler
     let job_id = ctx
         .scheduler
-        .schedule_job(idempotency_key, job_descriptor, worker_id)
+        .schedule_job(idempotency_key.into(), job_descriptor, worker_id)
         .await
         .map_err(|err| {
             tracing::error!(

@@ -141,6 +141,7 @@ rstest = "0.26.1"
 rustls = { version = "0.23", features = ["ring"] }
 schemars = "1.0.4"
 semver = { version = "1.0.18", features = ["serde"] }
+sha2 = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
 serde_with = "3.16"

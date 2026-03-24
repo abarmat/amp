@@ -18,7 +18,7 @@ metadata-db = { path = "../metadata-db", optional = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 semver = { workspace = true }
-sha2 = "0.10"
+sha2.workspace = true
 thiserror = { workspace = true }
 
 [dev-dependencies]

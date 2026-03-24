@@ -4,8 +4,8 @@
 //! with a location ID, producing a deterministic hash that prevents duplicate
 //! job scheduling for the same physical table revision.
 
-use datasets_common::hash::Hash;
-use metadata_db::{jobs::IdempotencyKey, physical_table_revision::LocationId};
+use amp_worker_core::jobs::job_key::{self, JobKey};
+use metadata_db::physical_table_revision::LocationId;
 
 use crate::job_kind::JOB_KIND;
 
@@ -13,9 +13,6 @@ use crate::job_kind::JOB_KIND;
 ///
 /// The key is derived by hashing `{job_kind}:{location_id}`,
 /// producing a deterministic 64-character hex string.
-pub fn idempotency_key(location_id: LocationId) -> IdempotencyKey<'static> {
-    let input = format!("{JOB_KIND}:{location_id}");
-    let hash: Hash = datasets_common::hash::hash(input);
-    // SAFETY: The hash is a validated 64-char hex string produced by our hash function.
-    IdempotencyKey::from_owned_unchecked(hash.into_inner())
+pub fn idempotency_key(location_id: LocationId) -> JobKey {
+    job_key::hash(format!("{JOB_KIND}:{location_id}"))
 }
