@@ -4,6 +4,7 @@ use common::memory_pool::TieredMemoryPool;
 use datafusion::execution::memory_pool::human_readable_size;
 use datasets_common::hash_reference::HashReference;
 use monitoring::telemetry;
+use telemetry::metrics::KeyValue;
 
 #[derive(Debug, Clone)]
 pub struct MetricsRegistry {
@@ -162,10 +163,7 @@ impl MetricsRegistry {
     /// Record query error
     pub fn record_query_error(&self, error_code: &str, dataset: &HashReference) {
         let mut labels = dataset_kvs(dataset).to_vec();
-        labels.push(telemetry::metrics::KeyValue::new(
-            "error_code",
-            error_code.to_string(),
-        ));
+        labels.push(KeyValue::new("error_code", error_code.to_string()));
         self.query_errors.inc_with_kvs(&labels);
     }
 
@@ -204,14 +202,7 @@ impl MetricsRegistry {
     }
 }
 
-/// Build the two standard dataset labels from a `HashReference`:
-/// `dataset` = `namespace/name`, `dataset_name` = just the name.
-fn dataset_kvs(dataset: &HashReference) -> [telemetry::metrics::KeyValue; 2] {
-    [
-        telemetry::metrics::KeyValue::new(
-            "dataset",
-            format!("{}/{}", dataset.namespace(), dataset.name()),
-        ),
-        telemetry::metrics::KeyValue::new("dataset_name", dataset.name().as_str().to_string()),
-    ]
+/// Build the standard dataset label from a `HashReference`: `dataset` = `namespace/name`.
+fn dataset_kvs(dataset: &HashReference) -> [KeyValue; 1] {
+    [KeyValue::new("dataset", dataset.as_fqn().to_string())]
 }

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use datasets_common::hash_reference::HashReference;
 use monitoring::telemetry;
+use telemetry::metrics::KeyValue;
 
 /// The recommended interval at which to export metrics when running the `dump` command.
 /// If the export interval is set to a higher value (less frequent), there is a risk
@@ -173,13 +174,13 @@ impl MetricsRegistry {
             ),
             expired_files_found: telemetry::metrics::Counter::new(
                 meter,
-                "files_not_found",
-                "Counter for files not found during garbage collection",
+                "expired_files_found",
+                "Counter for expired files discovered during garbage collection scans",
             ),
             expired_entries_deleted: telemetry::metrics::Counter::new(
                 meter,
-                "files_failed_to_delete",
-                "Counter for files that failed to delete during garbage collection",
+                "expired_entries_deleted",
+                "Counter for expired metadata entries removed during garbage collection",
             ),
             successful_collections: telemetry::metrics::Counter::new(
                 meter,
@@ -200,27 +201,20 @@ impl MetricsRegistry {
 
     pub fn base_kvs(&self) -> Vec<telemetry::metrics::KeyValue> {
         vec![
-            telemetry::metrics::KeyValue::new(
-                "dataset_name",
-                self.dataset_reference.name().as_str().to_string(),
-            ),
-            telemetry::metrics::KeyValue::new(
-                "dataset_namespace",
-                self.dataset_reference.namespace().as_str().to_string(),
-            ),
-            telemetry::metrics::KeyValue::new(
+            KeyValue::new("dataset", self.dataset_reference.as_fqn().to_string()),
+            KeyValue::new(
                 "manifest_hash",
                 self.dataset_reference.hash().as_str().to_string(),
             ),
-            telemetry::metrics::KeyValue::new("job_id", self.job_id.to_string()),
+            KeyValue::new("job_id", self.job_id.to_string()),
         ]
     }
     /// Record rows ingested
     pub fn record_ingestion_rows(&self, rows: u64, table: String, location_id: i64) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
         self.rows_ingested.inc_by_with_kvs(rows, &kv_pairs);
     }
@@ -229,8 +223,8 @@ impl MetricsRegistry {
     pub fn record_write_call(&self, bytes: u64, table: String, location_id: i64) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
         self.bytes_written.inc_by_with_kvs(bytes, &kv_pairs);
         self.write_calls.inc_with_kvs(&kv_pairs);
@@ -240,8 +234,8 @@ impl MetricsRegistry {
     pub fn record_file_written(&self, table: String, location_id: i64) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
         self.files_written.inc_with_kvs(&kv_pairs);
     }
@@ -255,8 +249,8 @@ impl MetricsRegistry {
     ) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
         self.latest_segment_timestamp
             .record_with_kvs(latest_segment_timestamp, &kv_pairs);
@@ -272,8 +266,8 @@ impl MetricsRegistry {
     pub fn set_latest_block(&self, block_number: u64, table: String, location_id: i64) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
         self.latest_block.record_with_kvs(block_number, &kv_pairs);
     }
@@ -281,7 +275,7 @@ impl MetricsRegistry {
     /// Record duration of a dump operation
     pub fn record_dump_duration(&self, duration_millis: f64, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.dump_duration
             .record_with_kvs(duration_millis, &kv_pairs);
     }
@@ -289,7 +283,7 @@ impl MetricsRegistry {
     /// Record a dump error
     pub fn record_dump_error(&self, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.dump_errors.inc_with_kvs(&kv_pairs);
     }
 
@@ -308,8 +302,8 @@ impl MetricsRegistry {
     ) {
         let mut kv_pairs = self.base_kvs();
         kv_pairs.extend_from_slice(&[
-            telemetry::metrics::KeyValue::new("table", table),
-            telemetry::metrics::KeyValue::new("location_id", location_id),
+            KeyValue::new("table", table),
+            KeyValue::new("location_id", location_id),
         ]);
 
         self.compaction_files_read
@@ -324,52 +318,52 @@ impl MetricsRegistry {
 
     pub(crate) fn inc_successful_compactions(&self, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.successful_compactions.inc_with_kvs(&kv_pairs);
     }
 
     pub(crate) fn inc_failed_compactions(&self, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.failed_compactions.inc_with_kvs(&kv_pairs);
     }
 
     pub(crate) fn inc_files_deleted(&self, amount: usize, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.files_deleted.inc_by_with_kvs(amount as u64, &kv_pairs);
     }
 
     pub(crate) fn inc_files_not_found(&self, amount: usize, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.files_not_found
             .inc_by_with_kvs(amount as u64, &kv_pairs);
     }
 
     pub(crate) fn inc_expired_files_found(&self, amount: usize, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.expired_files_found
             .inc_by_with_kvs(amount as u64, &kv_pairs);
     }
 
     pub(crate) fn inc_expired_entries_deleted(&self, amount: usize, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.expired_entries_deleted
             .inc_by_with_kvs(amount as u64, &kv_pairs);
     }
 
     pub(crate) fn inc_successful_collections(&self, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.successful_collections.inc_with_kvs(&kv_pairs);
     }
 
     pub(crate) fn inc_failed_collections(&self, table: String) {
         let mut kv_pairs = self.base_kvs();
-        kv_pairs.extend_from_slice(&[telemetry::metrics::KeyValue::new("table", table)]);
+        kv_pairs.extend_from_slice(&[KeyValue::new("table", table)]);
         self.failed_collections.inc_with_kvs(&kv_pairs);
     }
 }
