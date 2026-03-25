@@ -769,7 +769,10 @@ fn track_query_metrics(
         } => {
             // Increment active streaming query counters, once per dataset
             for dataset in &dataset_labels {
-                let kv = [KeyValue::new("dataset", dataset.as_fqn().to_string())];
+                let kv = [
+                    KeyValue::new("dataset", dataset.as_fqn().to_string()),
+                    KeyValue::new("manifest_hash", dataset.hash().as_str().to_string()),
+                ];
                 metrics.streaming_queries_active.inc_with_kvs(&kv);
                 metrics.streaming_queries_started.inc_with_kvs(&kv);
             }
@@ -809,7 +812,10 @@ fn track_query_metrics(
                             let duration = start_time.elapsed().as_millis() as f64;
                             for dataset in &dataset_labels {
                                 metrics.record_streaming_lifetime(duration, dataset);
-                                let kv = [KeyValue::new("dataset", dataset.as_fqn().to_string())];
+                                let kv = [
+                                    KeyValue::new("dataset", dataset.as_fqn().to_string()),
+                                    KeyValue::new("manifest_hash", dataset.hash().as_str().to_string()),
+                                ];
                                 metrics.streaming_queries_completed.inc_with_kvs(&kv);
                                 metrics.streaming_queries_active.dec_with_kvs(&kv);
                             }
@@ -824,7 +830,10 @@ fn track_query_metrics(
                 let duration = start_time.elapsed().as_millis() as f64;
                 for dataset in &dataset_labels {
                     metrics.record_streaming_lifetime(duration, dataset);
-                    let kv = [KeyValue::new("dataset", dataset.as_fqn().to_string())];
+                    let kv = [
+                        KeyValue::new("dataset", dataset.as_fqn().to_string()),
+                        KeyValue::new("manifest_hash", dataset.hash().as_str().to_string()),
+                    ];
                     metrics.streaming_queries_completed.inc_with_kvs(&kv);
                     metrics.streaming_queries_active.dec_with_kvs(&kv);
                 }

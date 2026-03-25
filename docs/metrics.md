@@ -20,7 +20,7 @@ Amp uses four OpenTelemetry instrument types:
 ### query_count_total
 
 **Type:** Counter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Tracks total queries executed since service start. Provides the foundation for understanding query workload patterns and system utilization. Use to track overall query load, detect anomalous traffic patterns, and understand system usage trends. Essential for capacity planning and SLA monitoring.
 
@@ -28,14 +28,14 @@ Tracks total queries executed since service start. Provides the foundation for u
 
 **Type:** Histogram
 **Unit:** milliseconds
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Measures end-to-end query execution time from submission to result completion. Primary SLA metric for query performance. Histogram enables percentile calculations (p50, p95, p99) which are more meaningful than averages for understanding user experience. Use to track latency against SLOs, detect performance regressions after deployments, and identify optimization targets. Critical for ensuring interactive queries remain fast.
 
 ### query_rows_returned_total
 
 **Type:** Counter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Cumulative count of rows returned to clients across all queries. Helps understand data access patterns and query selectivity. High counts indicate full table scans or large result sets, low counts suggest well-filtered queries. Use to analyze query patterns, estimate egress volume, calculate query efficiency (rows/second), and evaluate pagination effectiveness. Essential for network bandwidth planning and understanding query behavior.
 
@@ -43,14 +43,14 @@ Cumulative count of rows returned to clients across all queries. Helps understan
 
 **Type:** Counter
 **Unit:** bytes
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Total bytes sent to clients across all queries. Direct measure of network egress and primary driver of cloud provider costs. Use for cloud cost attribution, network capacity planning, compression strategy evaluation, and bandwidth monitoring. Critical for cost management in cloud environments where egress is expensive.
 
 ### query_errors_total
 
 **Type:** Counter
-**Labels:** `dataset`, `error_code`
+**Labels:** `dataset`, `manifest_hash`, `error_code`
 
 Count of failed queries by error code. Essential for reliability monitoring and understanding failure modes. Use to calculate error rates against SLOs, prioritize bug fixes based on frequency, detect systemic issues vs random failures, and understand error patterns. Key reliability metric for on-call dashboards.
 
@@ -61,21 +61,21 @@ Count of failed queries by error code. Essential for reliability monitoring and 
 ### streaming_queries_started_total
 
 **Type:** Counter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Total number of streaming queries started. Streaming queries continuously deliver data as new blocks are produced. Use to track streaming query adoption, understand demand for real-time data, and validate streaming infrastructure is being utilized.
 
 ### streaming_queries_completed_total
 
 **Type:** Counter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Total number of streaming queries that completed (stream fully consumed or client disconnected). Use with `started_total` to calculate completion rate and identify abandoned streams.
 
 ### streaming_queries_active
 
 **Type:** UpDownCounter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Current number of active streaming queries in this process. Increments when stream starts, decrements when completed or errored. Resets to 0 on process restart (correct behavior - streams don't survive restarts). This is the **correct** way to track active streams, not `started_total - completed_total` which breaks on process restarts. Use to monitor concurrent streaming load, detect resource leaks, and plan streaming capacity.
 
@@ -83,7 +83,7 @@ Current number of active streaming queries in this process. Increments when stre
 
 **Type:** Histogram
 **Unit:** milliseconds
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Duration that streaming queries remain active from start to completion. Use to understand typical stream lifetimes, identify long-running streams, detect abandoned connections, and plan connection timeout policies.
 
@@ -91,7 +91,7 @@ Duration that streaming queries remain active from start to completion. Use to u
 
 **Type:** Histogram
 **Unit:** rows
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Distribution of rows per microbatch in streaming queries. Use to understand streaming throughput patterns, tune microbatch configuration, and identify queries with inefficient batching.
 
@@ -99,14 +99,14 @@ Distribution of rows per microbatch in streaming queries. Use to understand stre
 
 **Type:** Histogram
 **Unit:** milliseconds
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Duration of each streaming microbatch from start to completion. Measures the time taken to process and deliver each batch of results to clients. Use to understand microbatch processing performance, identify slow batches that may indicate complex queries or large result sets, correlate with batch size metrics to optimize microbatch configuration, and detect performance regressions in streaming query execution.
 
 ### streaming_rows_sent_total
 
 **Type:** Counter
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Total rows sent incrementally via streaming queries. Updated in real-time as each microbatch is sent. Use to calculate real-time streaming throughput (rows/sec), compare streaming vs non-streaming query volumes, and validate streaming data delivery.
 
@@ -114,7 +114,7 @@ Total rows sent incrementally via streaming queries. Updated in real-time as eac
 
 **Type:** Counter
 **Unit:** bytes
-**Labels:** `dataset`
+**Labels:** `dataset`, `manifest_hash`
 
 Total bytes sent incrementally via streaming queries. Updated in real-time as each microbatch is sent. Use to calculate streaming bandwidth utilization, estimate streaming egress costs, and compare streaming vs non-streaming network usage.
 

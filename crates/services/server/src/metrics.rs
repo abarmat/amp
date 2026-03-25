@@ -202,7 +202,12 @@ impl MetricsRegistry {
     }
 }
 
-/// Build the standard dataset label from a `HashReference`: `dataset` = `namespace/name`.
-fn dataset_kvs(dataset: &HashReference) -> [KeyValue; 1] {
-    [KeyValue::new("dataset", dataset.as_fqn().to_string())]
+/// Build the standard dataset labels from a `HashReference`:
+/// - `dataset` = `namespace/name`
+/// - `manifest_hash` = full manifest hash
+fn dataset_kvs(dataset: &HashReference) -> [KeyValue; 2] {
+    [
+        KeyValue::new("dataset", dataset.as_fqn().to_string()),
+        KeyValue::new("manifest_hash", dataset.hash().as_str().to_string()),
+    ]
 }
