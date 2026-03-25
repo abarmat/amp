@@ -22,6 +22,7 @@ use common::{
     exec_env::ExecEnv,
     physical_table::{CanonicalChainError, PhysicalTable},
     retryable::RetryableErrorExt as _,
+    rpc_catalog_provider::{RPC_CATALOG_NAME, RpcCatalogProvider},
     self_schema_provider::SelfSchemaProvider,
     sql::{ParseSqlError, ResolveTableReferencesError, TableReference, resolve_table_references},
 };
@@ -150,13 +151,15 @@ pub async fn materialize_table(
     let self_schema: Arc<dyn common::amp_catalog_provider::AsyncSchemaProvider> =
         Arc::new(self_schema_provider);
     let amp_catalog = Arc::new(
-        AmpCatalogProvider::new(ctx.datasets_cache.clone(), ctx.ethcall_udfs_cache.clone())
+        AmpCatalogProvider::new(ctx.datasets_cache.clone())
             .with_dep_aliases(dep_alias_map)
             .with_self_schema(self_schema),
     );
+    let rpc_catalog = Arc::new(RpcCatalogProvider::new(ctx.ethcall_udfs_cache.clone()));
     let planning_ctx = PlanContextBuilder::new(env.session_config.clone())
         .with_table_catalog(AMP_CATALOG_NAME, amp_catalog.clone())
         .with_func_catalog(AMP_CATALOG_NAME, amp_catalog)
+        .with_func_catalog(RPC_CATALOG_NAME, rpc_catalog)
         .build();
 
     join_set.spawn(

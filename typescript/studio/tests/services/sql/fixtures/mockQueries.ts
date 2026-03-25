@@ -116,8 +116,8 @@ export const udfQueries: Array<TestQuery> = [
     description: "Parameter completion inside UDF call",
   },
   {
-    query: "SELECT anvil.eth_call(",
-    position: new monaco.Position(1, 23),
+    query: "SELECT rpc.anvil.eth_call(",
+    position: new monaco.Position(1, 27),
     expectedContext: {
       expectsColumn: true,
       currentClause: "SELECT",

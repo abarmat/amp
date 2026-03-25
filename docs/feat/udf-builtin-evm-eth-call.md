@@ -50,7 +50,7 @@ Without a configured RPC provider, `eth_call` queries will fail.
 
 Executes read-only contract calls via JSON-RPC.
 
-**Important:** eth_call requires dataset qualification. Always use the format `"namespace/name@revision".eth_call(...)` where the dataset identifier specifies which blockchain network and provider configuration to use. For example: `"edgeandnode/mainnet@0.0.1".eth_call(...)`.
+**Important:** eth_call requires RPC catalog qualification. Always use the format `rpc.<network>.eth_call(...)` where `<network>` matches a configured provider network. For example: `rpc.mainnet.eth_call(...)`.
 
 **Arguments:**
 - `from` (FixedSizeBinary(20) or NULL): Sender address (optional, can pass NULL directly)
@@ -71,7 +71,7 @@ Fetch token metadata like `name()` and `decimals()` to enrich query results with
 SELECT
     evm_decode_hex(token_address) as token,
     evm_decode_type(
-        ("edgeandnode/mainnet@0.0.1".eth_call(NULL, token_address, evm_encode_params('name()'), 'latest')).data,
+        (rpc.mainnet.eth_call(NULL, token_address, evm_encode_params('name()'), 'latest')).data,
         'string'
     ) as name
 FROM tokens
@@ -79,7 +79,7 @@ FROM tokens
 -- Query token decimals
 SELECT
     evm_decode_type(
-        ("edgeandnode/mainnet@0.0.1".eth_call(NULL, token_address, evm_encode_params('decimals()'), 'latest')).data,
+        (rpc.mainnet.eth_call(NULL, token_address, evm_encode_params('decimals()'), 'latest')).data,
         'uint8'
     ) as decimals
 FROM tokens
@@ -101,7 +101,7 @@ FROM (
     SELECT
         token,
         holder,
-        "edgeandnode/mainnet@0.0.1".eth_call(
+        rpc.mainnet.eth_call(
             NULL,
             token,
             evm_encode_params(holder, 'balanceOf(address account)'),
@@ -120,7 +120,7 @@ Query past state at a specific block to analyze historical balances or reconstru
 SELECT
     evm_decode_type(result.data, 'uint256') as balance_at_block
 FROM (
-    SELECT "edgeandnode/mainnet@0.0.1".eth_call(
+    SELECT rpc.mainnet.eth_call(
         NULL,
         evm_encode_hex('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'),  -- WETH
         evm_encode_params(
@@ -143,7 +143,7 @@ SELECT
 FROM (
     SELECT
         pair_address,
-        "edgeandnode/mainnet@0.0.1".eth_call(
+        rpc.mainnet.eth_call(
             NULL,
             pair_address,
             evm_encode_params('getReserves()'),
@@ -160,7 +160,7 @@ Call a contract without any input data.
 
 ```sql
 SELECT
-    "edgeandnode/mainnet@0.0.1".eth_call(
+    rpc.mainnet.eth_call(
         NULL,
         evm_encode_hex('0x0000000000000000000000000000000000000000'),
         NULL,
@@ -177,7 +177,7 @@ Handle reverted calls gracefully since `eth_call` returns errors in the result s
 Exclude rows where the contract call reverted.
 
 ```sql
-WHERE ("namespace/name@revision".eth_call(...)).message IS NULL
+WHERE (rpc.<network>.eth_call(...)).message IS NULL
 ```
 
 #### Decode the Result Struct
@@ -185,7 +185,7 @@ WHERE ("namespace/name@revision".eth_call(...)).message IS NULL
 Access the `data` field and decode it to the expected Solidity type.
 
 ```sql
-evm_decode_type(("namespace/name@revision".eth_call(...)).data, 'uint256')
+evm_decode_type((rpc.<network>.eth_call(...)).data, 'uint256')
 ```
 
 #### Handle Reverts Gracefully
@@ -200,7 +200,7 @@ SELECT
         ELSE NULL
     END as balance
 FROM (
-    SELECT token, "edgeandnode/mainnet@0.0.1".eth_call(NULL, token, evm_encode_params(holder, 'balanceOf(address)'), 'latest') as result
+    SELECT token, rpc.mainnet.eth_call(NULL, token, evm_encode_params(holder, 'balanceOf(address)'), 'latest') as result
     FROM token_holders
 )
 ```
@@ -214,7 +214,7 @@ SELECT
     evm_decode_hex(contract) as contract,
     result.message as revert_reason
 FROM (
-    SELECT contract, "edgeandnode/mainnet@0.0.1".eth_call(NULL, contract, calldata, 'latest') as result
+    SELECT contract, rpc.mainnet.eth_call(NULL, contract, calldata, 'latest') as result
     FROM contracts
 )
 WHERE result.message IS NOT NULL
@@ -229,7 +229,7 @@ WHERE result.message IS NOT NULL
 ## Limitations
 
 - Requires Ethereum JSON-RPC endpoint configured
-- Requires dataset qualification (`"namespace/name@revision".eth_call`)
+- Requires RPC catalog qualification (`rpc.<network>.eth_call`)
 - `to` address is required (cannot be NULL, must be FixedSizeBinary(20))
 - `block` is required (cannot be NULL)
 - `from` must be NULL or FixedSizeBinary(20) - other types will produce an error

@@ -50,7 +50,7 @@ export interface MonacoITextModel {
  * @interface UserDefinedFunction
  */
 export interface UserDefinedFunction {
-  /** The function name (e.g., 'evm_decode_log', '${dataset}.eth_call') */
+  /** The function name (e.g., 'evm_decode_log', 'rpc.<network>.eth_call') */
   name: UserDefinedFunctionName
 
   /** Human-readable description of the function's purpose */

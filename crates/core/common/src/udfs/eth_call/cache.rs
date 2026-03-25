@@ -1,7 +1,7 @@
-//! EthCall UDF cache for EVM RPC datasets.
+//! EthCall UDF cache for EVM RPC providers.
 //!
 //! This module provides the `EthCallUdfsCache` struct which manages creation and caching
-//! of `eth_call` scalar UDFs for EVM RPC datasets through the providers registry.
+//! of `eth_call` scalar UDFs keyed by network through the providers registry.
 
 use std::sync::Arc;
 
@@ -10,23 +10,18 @@ use datafusion::{
     common::HashMap,
     logical_expr::{ScalarUDF, async_udf::AsyncScalarUDF},
 };
-use datasets_common::{
-    dataset::Dataset as _, dataset_kind_str::DatasetKindStr, hash_reference::HashReference,
-    network_id::NetworkId,
-};
-use datasets_raw::dataset::Dataset as RawDataset;
-use evm_rpc_datasets::EvmRpcDatasetKind;
+use datasets_common::network_id::NetworkId;
 use parking_lot::RwLock;
 
 use super::udf::EthCall;
 
-/// Manages creation and caching of `eth_call` scalar UDFs for EVM RPC datasets.
+/// Manages creation and caching of `eth_call` scalar UDFs keyed by network.
 ///
 /// Orchestrates UDF creation through the providers registry with in-memory caching.
 #[derive(Clone)]
 pub struct EthCallUdfsCache {
     registry: ProvidersRegistry,
-    cache: Arc<RwLock<HashMap<HashReference, ScalarUDF>>>,
+    cache: Arc<RwLock<HashMap<NetworkId, ScalarUDF>>>,
 }
 
 impl std::fmt::Debug for EthCallUdfsCache {
@@ -49,74 +44,51 @@ impl EthCallUdfsCache {
         &self.registry
     }
 
-    /// Returns cached eth_call scalar UDF, otherwise loads the UDF and caches it.
+    /// Returns cached eth_call scalar UDF for a network, creating one if not cached.
     ///
-    /// The function will be named `<sql_schema_name>.eth_call`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if an EVM RPC dataset has no tables. This is a structural invariant
-    /// guaranteed by the dataset construction process.
-    pub async fn eth_call_for_dataset(
+    /// The `udf_name` is the name DataFusion's planner uses to look up the function
+    /// (e.g., `rpc.mainnet.eth_call`). The caller controls the naming convention.
+    pub async fn eth_call_for_network(
         &self,
-        sql_schema_name: &str,
-        dataset: &dyn datasets_common::dataset::Dataset,
-    ) -> Result<Option<ScalarUDF>, EthCallForDatasetError> {
-        let Some(raw) = dataset.downcast_ref::<RawDataset>() else {
-            return Ok(None);
-        };
-
-        if raw.kind() != EvmRpcDatasetKind {
-            return Ok(None);
+        udf_name: &str,
+        network: &NetworkId,
+    ) -> Result<ScalarUDF, EthCallForNetworkError> {
+        // Check cache first.
+        if let Some(udf) = self.cache.read().get(network) {
+            return Ok(udf.clone());
         }
-
-        // Check if we already have the provider cached.
-        if let Some(udf) = self.cache.read().get(dataset.reference()) {
-            return Ok(Some(udf.clone()));
-        }
-
-        // Load the provider from the dataset definition.
-        let network = raw.network();
 
         let provider = match self.registry.create_evm_rpc_client(network).await {
             Ok(Some(provider)) => provider,
             Ok(None) => {
                 tracing::warn!(
-                    provider_kind = %EvmRpcDatasetKind,
                     provider_network = %network,
-                    "no provider found for requested kind-network configuration"
+                    "no EVM RPC provider found for network"
                 );
-                return Err(EthCallForDatasetError::ProviderNotFound {
-                    dataset_kind: EvmRpcDatasetKind.into(),
+                return Err(EthCallForNetworkError::ProviderNotFound {
                     network: network.clone(),
                 });
             }
             Err(err) => {
-                return Err(EthCallForDatasetError::ProviderCreation(err));
+                return Err(EthCallForNetworkError::ProviderCreation(err));
             }
         };
 
-        let udf = AsyncScalarUDF::new(Arc::new(EthCall::new(sql_schema_name, provider)))
+        let udf = AsyncScalarUDF::new(Arc::new(EthCall::new(udf_name.to_string(), provider)))
             .into_scalar_udf();
 
-        // Cache the EthCall UDF
-        self.cache
-            .write()
-            .insert(dataset.reference().clone(), udf.clone());
+        self.cache.write().insert(network.clone(), udf.clone());
 
-        Ok(Some(udf))
+        Ok(udf)
     }
 }
 
-/// Errors that occur when creating eth_call user-defined functions for EVM RPC datasets.
+/// Errors that occur when creating eth_call UDFs for a network.
 #[derive(Debug, thiserror::Error)]
-pub enum EthCallForDatasetError {
-    /// No provider configuration found for the dataset kind and network combination.
-    #[error("No provider found for dataset kind '{dataset_kind}' and network '{network}'")]
-    ProviderNotFound {
-        dataset_kind: DatasetKindStr,
-        network: NetworkId,
-    },
+pub enum EthCallForNetworkError {
+    /// No provider configuration found for the network.
+    #[error("No EVM RPC provider found for network '{network}'")]
+    ProviderNotFound { network: NetworkId },
 
     /// Failed to create the EVM RPC provider.
     #[error("Failed to create EVM RPC provider")]

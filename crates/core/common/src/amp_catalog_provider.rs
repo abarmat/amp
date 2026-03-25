@@ -31,7 +31,6 @@ use crate::{
             AsyncSchemaProvider as FuncAsyncSchemaProvider, SchemaProvider as FuncSchemaProvider,
         },
     },
-    udfs::eth_call::EthCallUdfsCache,
 };
 
 /// Combined async schema provider for both tables and functions.
@@ -51,7 +50,6 @@ pub const AMP_CATALOG_NAME: &str = "amp";
 #[derive(Clone)]
 pub struct AmpCatalogProvider {
     datasets_cache: DatasetsCache,
-    ethcall_udfs_cache: EthCallUdfsCache,
     /// Optional dependency alias overrides. When set, bare names matching
     /// a key are resolved directly to the corresponding [`HashReference`]
     /// instead of going through `PartialReference` → `Reference` → `resolve_revision`.
@@ -63,10 +61,9 @@ pub struct AmpCatalogProvider {
 
 impl AmpCatalogProvider {
     /// Creates a new catalog provider.
-    pub fn new(datasets_cache: DatasetsCache, ethcall_udfs_cache: EthCallUdfsCache) -> Self {
+    pub fn new(datasets_cache: DatasetsCache) -> Self {
         Self {
             datasets_cache,
-            ethcall_udfs_cache,
             dep_aliases: Default::default(),
             self_schema: None,
         }
@@ -116,11 +113,8 @@ impl AmpCatalogProvider {
                 .await
                 .map_err(|err| DataFusionError::External(Box::new(err)))?;
 
-            let provider: Arc<dyn AsyncSchemaProvider> = Arc::new(DatasetSchemaProvider::new(
-                name.to_string(),
-                dataset,
-                self.ethcall_udfs_cache.clone(),
-            ));
+            let provider: Arc<dyn AsyncSchemaProvider> =
+                Arc::new(DatasetSchemaProvider::new(name.to_string(), dataset));
             return Ok(Some(provider));
         }
 
@@ -146,11 +140,8 @@ impl AmpCatalogProvider {
             .await
             .map_err(|err| DataFusionError::External(Box::new(err)))?;
 
-        let provider: Arc<dyn AsyncSchemaProvider> = Arc::new(DatasetSchemaProvider::new(
-            name.to_string(),
-            dataset,
-            self.ethcall_udfs_cache.clone(),
-        ));
+        let provider: Arc<dyn AsyncSchemaProvider> =
+            Arc::new(DatasetSchemaProvider::new(name.to_string(), dataset));
         Ok(Some(provider))
     }
 }

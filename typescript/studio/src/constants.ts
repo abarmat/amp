@@ -12,7 +12,7 @@ export const RESERVED_FIELDS = new Set(["from", "select", "limit", "order"])
 export const UserDefinedFunctionName = Schema.Literal(
   "evm_decode_log",
   "evm_topic",
-  "${dataset}.eth_call",
+  "rpc.<network>.eth_call",
   "attestation_hash",
   "evm_decode_params",
   "evm_encode_params",
@@ -47,10 +47,10 @@ export const USER_DEFINED_FUNCTIONS: ReadonlyArray<UserDefinedFunction> = [
     sql: `FixedSizeBinary(32) evm_topic(Utf8 signature)`,
   },
   {
-    name: "${dataset}.eth_call",
+    name: "rpc.<network>.eth_call",
     description:
-      "This function executes an `eth_call` JSON-RPC against the provider of the specified EVM-RPC dataset. Returns a tuple of the return value of the call and the error message (if any, or empty string if no error).",
-    sql: `(Binary, Utf8) {dataset}.eth_call(
+      "This function executes an `eth_call` JSON-RPC against the provider of the specified network. Returns a tuple of the return value of the call and the error message (if any, or empty string if no error).",
+    sql: `(Binary, Utf8) rpc.<network>.eth_call(
   FixedSizeBinary(20) from, # optional
   FixedSizeBinary(20) to,
   Binary input_data, # optional

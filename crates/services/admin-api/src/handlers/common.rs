@@ -16,6 +16,7 @@ use common::{
     context::plan::PlanContextBuilder,
     datasets_cache::{DatasetsCache, GetDatasetError},
     exec_env::default_session_config,
+    rpc_catalog_provider::{RPC_CATALOG_NAME, RpcCatalogProvider},
     self_schema_provider::SelfSchemaProvider,
     sql::{
         FunctionReference, ResolveFunctionReferencesError, ResolveTableReferencesError,
@@ -462,13 +463,15 @@ pub async fn validate_derived_manifest(
     let self_schema_provider =
         Arc::new(SelfSchemaProvider::from_manifest_udfs(&manifest.functions));
     let amp_catalog = Arc::new(
-        AmpCatalogProvider::new(datasets_cache.clone(), ethcall_udfs_cache.clone())
+        AmpCatalogProvider::new(datasets_cache.clone())
             .with_dep_aliases(dep_aliases)
             .with_self_schema(self_schema_provider.clone() as Arc<dyn AsyncSchemaProvider>),
     );
+    let rpc_catalog = Arc::new(RpcCatalogProvider::new(ethcall_udfs_cache.clone()));
     let planning_ctx = PlanContextBuilder::new(session_config)
         .with_table_catalog(AMP_CATALOG_NAME, amp_catalog.clone())
         .with_func_catalog(AMP_CATALOG_NAME, amp_catalog)
+        .with_func_catalog(RPC_CATALOG_NAME, rpc_catalog)
         .build();
 
     // Step 4: Validate that all table SQL queries are incremental, in topological order.

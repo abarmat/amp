@@ -103,7 +103,7 @@ async fn eth_call_reads_counter_value_after_increments() {
     let contract_addr_hex = hex::encode(deployment.address.as_slice());
     let eth_call_query = indoc::formatdoc! {r#"
         WITH call_result AS (
-            SELECT "_/anvil_rpc@0.0.0".eth_call(
+            SELECT rpc.anvil.eth_call(
                 arrow_cast(decode('{null_addr_hex}', 'hex'), 'FixedSizeBinary(20)'),
                 arrow_cast(decode('{contract_addr_hex}', 'hex'), 'FixedSizeBinary(20)'),
                 decode('{count_selector}', 'hex'),

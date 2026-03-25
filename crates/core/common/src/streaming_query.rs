@@ -54,6 +54,7 @@ use crate::{
         find_cross_network_join, order_by_block_num, unproject_special_block_num_column,
     },
     retryable::RetryableErrorExt,
+    rpc_catalog_provider::{RPC_CATALOG_NAME, RpcCatalogProvider},
     self_schema_provider::SelfSchemaProvider,
     sql::TableReference,
     sql_str::SqlStr,
@@ -390,16 +391,16 @@ impl StreamingQuery {
                 catalog.udfs().to_vec(),
             ));
             let amp_catalog = Arc::new(
-                AmpCatalogProvider::new(
-                    exec_env.datasets_cache.clone(),
-                    exec_env.ethcall_udfs_cache.clone(),
-                )
-                .with_dep_aliases(dep_alias_map)
-                .with_self_schema(self_schema),
+                AmpCatalogProvider::new(exec_env.datasets_cache.clone())
+                    .with_dep_aliases(dep_alias_map)
+                    .with_self_schema(self_schema),
             );
+            let rpc_catalog =
+                Arc::new(RpcCatalogProvider::new(exec_env.ethcall_udfs_cache.clone()));
             let ctx = PlanContextBuilder::new(exec_env.session_config.clone())
                 .with_table_catalog(AMP_CATALOG_NAME, amp_catalog.clone())
                 .with_func_catalog(AMP_CATALOG_NAME, amp_catalog)
+                .with_func_catalog(RPC_CATALOG_NAME, rpc_catalog)
                 .build();
             ctx.optimize(&plan).map_err(SpawnError::OptimizePlan)?
         };

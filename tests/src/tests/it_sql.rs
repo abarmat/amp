@@ -33,7 +33,7 @@ async fn eth_call_tests() {
     let test_ctx = TestCtxBuilder::new("eth_call_tests")
         .with_dataset_manifests(["eth_rpc"])
         .with_dataset_snapshots(["eth_rpc"])
-        .with_provider_configs(["rpc_eth_mainnet"])
+        .with_provider_configs(["rpc_eth_mainnet", "rpc_eth_base"])
         .build()
         .await
         .expect("Failed to create test environment");

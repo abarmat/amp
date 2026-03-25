@@ -61,7 +61,7 @@ export class UdfSnippetGenerator {
   private readonly snippetGenerators = new Map<UserDefinedFunctionName, () => string>([
     ["evm_decode_log", () => this.createEvmDecodeLogSnippet()],
     ["evm_topic", () => this.createEvmTopicSnippet()],
-    ["${dataset}.eth_call", () => this.createEthCallSnippet()],
+    ["rpc.<network>.eth_call", () => this.createEthCallSnippet()],
     ["evm_decode_params", () => this.createEvmDecodeParamsSnippet()],
     ["evm_encode_params", () => this.createEvmEncodeParamsSnippet()],
     ["evm_encode_type", () => this.createEvmEncodeTypeSnippet()],
@@ -122,10 +122,10 @@ export class UdfSnippetGenerator {
    */
   private createEthCallSnippet(): string {
     if (this.config.includeExampleValues) {
-      const dataset = `\${1:${this.config.defaultDataset}}`
-      return `${dataset}.eth_call(\${2:0x0000000000000000000000000000000000000000}, \${3:0x1234567890123456789012345678901234567890}, \${4:0x70a08231}, '\${5:latest}')$0`
+      const network = `\${1:${this.config.defaultDataset}}`
+      return `rpc.${network}.eth_call(\${2:0x0000000000000000000000000000000000000000}, \${3:0x1234567890123456789012345678901234567890}, \${4:0x70a08231}, '\${5:latest}')$0`
     }
-    return "${1:dataset}.eth_call(${2:from_address}, ${3:to_address}, ${4:input_data}, '${5:block}')$0"
+    return "rpc.${1:network}.eth_call(${2:from_address}, ${3:to_address}, ${4:input_data}, '${5:block}')$0"
   }
 
   /**

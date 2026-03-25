@@ -25,13 +25,13 @@ export const mockUDFs: ReadonlyArray<UserDefinedFunction> = [
       "SELECT * FROM anvil.logs WHERE topics[0] = evm_topic('Transfer(address indexed from, address indexed to, uint256 value)')",
   },
   {
-    name: "${dataset}.eth_call",
+    name: "rpc.<network>.eth_call",
     description:
-      "This function executes an `eth_call` JSON-RPC against the provider of the specified EVM-RPC dataset. Returns a tuple of the return value of the call and the error message (if any, or empty string if no error).",
-    sql: "${dataset}.eth_call(from, to, input_data, block_specification)",
+      "This function executes an `eth_call` JSON-RPC against the provider of the specified network. Returns a tuple of the return value of the call and the error message (if any, or empty string if no error).",
+    sql: "rpc.<network>.eth_call(from, to, input_data, block_specification)",
     parameters: ["from", "to", "input_data", "block_specification"],
     example:
-      "SELECT anvil.eth_call('0x0000000000000000000000000000000000000000', '0x1234567890123456789012345678901234567890', '0x70a08231', 'latest')",
+      "SELECT rpc.anvil.eth_call('0x0000000000000000000000000000000000000000', '0x1234567890123456789012345678901234567890', '0x70a08231', 'latest')",
   },
   {
     name: "attestation_hash",

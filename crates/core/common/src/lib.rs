@@ -19,6 +19,7 @@ pub mod physical_table;
 pub mod plan_table;
 pub mod plan_visitors;
 pub mod retryable;
+pub mod rpc_catalog_provider;
 pub mod self_schema_provider;
 pub mod sql;
 pub mod streaming_query;

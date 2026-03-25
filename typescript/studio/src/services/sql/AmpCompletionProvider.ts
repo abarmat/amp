@@ -363,7 +363,7 @@ export class AmpCompletionProvider implements languages.CompletionItemProvider {
   private readonly udfSnippets: Record<string, string> = {
     evm_decode_log: "evm_decode_log(${1:topic1}, ${2:topic2}, ${3:topic3}, ${4:data}, '${5:signature}')$0",
     evm_topic: "evm_topic('${1:signature}')$0",
-    "${dataset}.eth_call": "${1:dataset}.eth_call(${2:from_address}, ${3:to_address}, ${4:input_data}, '${5:block}')$0",
+    "rpc.eth_call": "rpc.${1:network}.eth_call(${2:from_address}, ${3:to_address}, ${4:input_data}, '${5:block}')$0",
     evm_decode_params: "evm_decode_params(${1:input_data}, '${2:signature}')$0",
     evm_encode_params: "evm_encode_params(${1:arg1}, ${2:arg2}, '${3:signature}')$0",
     evm_encode_type: "evm_encode_type(${1:value}, '${2:type}')$0",

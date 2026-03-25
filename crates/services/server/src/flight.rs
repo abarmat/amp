@@ -49,6 +49,7 @@ use common::{
     exec_env::ExecEnv,
     memory_pool::TieredMemoryPool,
     plan_visitors::{plan_has_block_num_udf, unproject_special_block_num_column},
+    rpc_catalog_provider::{RPC_CATALOG_NAME, RpcCatalogProvider},
     sql::{ResolveFunctionReferencesError, ResolveTableReferencesError, resolve_table_references},
     sql_str::SqlStr,
     streaming_query::{QueryMessage, StreamingQuery},
@@ -142,13 +143,12 @@ impl Service {
         .await
         .map_err(Error::PhysicalCatalogError)?;
 
-        let amp_catalog = Arc::new(AmpCatalogProvider::new(
-            self.env.datasets_cache.clone(),
-            self.env.ethcall_udfs_cache.clone(),
-        ));
+        let amp_catalog = Arc::new(AmpCatalogProvider::new(self.env.datasets_cache.clone()));
+        let rpc_catalog = Arc::new(RpcCatalogProvider::new(self.env.ethcall_udfs_cache.clone()));
         let ctx = PlanContextBuilder::new(self.env.session_config.clone())
             .with_table_catalog(AMP_CATALOG_NAME, amp_catalog.clone())
             .with_func_catalog(AMP_CATALOG_NAME, amp_catalog)
+            .with_func_catalog(RPC_CATALOG_NAME, rpc_catalog)
             .build();
         let plan = ctx
             .statement_to_plan(query.clone())
@@ -374,13 +374,14 @@ impl Service {
 
                     let query = common::sql::parse(&sql_str).map_err(Error::SqlParse)?;
                     let plan_ctx = {
-                        let amp_catalog = Arc::new(AmpCatalogProvider::new(
-                            self.env.datasets_cache.clone(),
-                            self.env.ethcall_udfs_cache.clone(),
-                        ));
+                        let amp_catalog =
+                            Arc::new(AmpCatalogProvider::new(self.env.datasets_cache.clone()));
+                        let rpc_catalog =
+                            Arc::new(RpcCatalogProvider::new(self.env.ethcall_udfs_cache.clone()));
                         PlanContextBuilder::new(self.env.session_config.clone())
                             .with_table_catalog(AMP_CATALOG_NAME, amp_catalog.clone())
                             .with_func_catalog(AMP_CATALOG_NAME, amp_catalog)
+                            .with_func_catalog(RPC_CATALOG_NAME, rpc_catalog)
                             .build()
                     };
 

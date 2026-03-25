@@ -16,7 +16,7 @@ use datafusion::{
     logical_expr::ScalarUDF,
 };
 use datasets_common::{dataset::Dataset, table_name::TableName};
-use datasets_derived::{dataset::Dataset as DerivedDataset, func_name::ETH_CALL_FUNCTION_NAME};
+use datasets_derived::dataset::Dataset as DerivedDataset;
 use parking_lot::RwLock;
 
 use crate::{
@@ -27,7 +27,7 @@ use crate::{
         },
     },
     plan_table::PlanTable,
-    udfs::{eth_call::EthCallUdfsCache, plan::PlanJsUdf},
+    udfs::plan::PlanJsUdf,
 };
 
 /// Schema provider for a dataset.
@@ -38,22 +38,16 @@ use crate::{
 pub struct DatasetSchemaProvider {
     schema_name: String,
     dataset: Arc<dyn Dataset>,
-    ethcall_udfs_cache: EthCallUdfsCache,
     tables: RwLock<BTreeMap<String, Arc<dyn TableProvider>>>,
     functions: RwLock<BTreeMap<String, Arc<ScalarUDF>>>,
 }
 
 impl DatasetSchemaProvider {
     /// Creates a new provider for the given dataset and schema name.
-    pub(crate) fn new(
-        schema_name: String,
-        dataset: Arc<dyn Dataset>,
-        ethcall_udfs_cache: EthCallUdfsCache,
-    ) -> Self {
+    pub(crate) fn new(schema_name: String, dataset: Arc<dyn Dataset>) -> Self {
         Self {
             schema_name,
             dataset,
-            ethcall_udfs_cache,
             tables: RwLock::new(Default::default()),
             functions: RwLock::new(Default::default()),
         }
@@ -147,21 +141,6 @@ impl FuncSchemaProvider for DatasetSchemaProvider {
             }
         }
 
-        // Check for eth_call function
-        if name == ETH_CALL_FUNCTION_NAME {
-            let udf = self
-                .ethcall_udfs_cache
-                .eth_call_for_dataset(&self.schema_name, self.dataset.as_ref())
-                .await
-                .map_err(|err| DataFusionError::External(Box::new(err)))?;
-
-            if let Some(udf) = udf {
-                let udf = Arc::new(udf);
-                self.functions.write().insert(name.to_string(), udf.clone());
-                return Ok(Some(Arc::new(ScalarFunctionProvider::from(udf))));
-            }
-        }
-
         // Try to get UDF from derived dataset and build a planning-only UDF.
         let udf: Option<ScalarUDF> = self
             .dataset
@@ -187,8 +166,6 @@ impl FuncSchemaProvider for DatasetSchemaProvider {
     /// Returns whether the function is known **from the cache only**.
     ///
     /// This deliberately does not probe the dataset or the store because:
-    /// - `eth_call` resolution requires async I/O (`dataset_store.eth_call_for_dataset`),
-    ///   which cannot be performed in this synchronous trait method without blocking.
     /// - Derived-dataset UDF lookup (`function_by_name`) is sync but allocates a
     ///   full `ScalarUDF` as a side effect, which is inappropriate for an existence check.
     ///

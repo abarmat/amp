@@ -1,6 +1,6 @@
 {
   "kind": "evm-rpc",
-  "network": "base",
+  "network": "base-mainnet",
   "start_block": 33411770,
   "finalized_blocks_only": false,
   "tables": {
@@ -115,7 +115,7 @@
               "nullable": false
             },
             {
-              "name": "base_fee_per_gas",
+              "name": "base-mainnet_fee_per_gas",
               "type": {
                 "Decimal128": [
                   38,
@@ -151,7 +151,7 @@
           ]
         }
       },
-      "network": "base"
+      "network": "base-mainnet"
     },
     "logs": {
       "schema": {
@@ -239,7 +239,7 @@
           ]
         }
       },
-      "network": "base"
+      "network": "base-mainnet"
     },
     "transactions": {
       "schema": {
@@ -391,7 +391,7 @@
           ]
         }
       },
-      "network": "base"
+      "network": "base-mainnet"
     }
   }
 }

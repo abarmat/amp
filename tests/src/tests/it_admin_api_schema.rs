@@ -1504,7 +1504,7 @@ async fn bare_builtin_function_succeeds() {
 }
 
 #[tokio::test]
-async fn function_with_catalog_qualification_fails() {
+async fn function_with_unregistered_catalog_qualification_fails() {
     //* Given
     let ctx = TestCtx::setup(
         "function_with_catalog_qualification",
@@ -1512,8 +1512,8 @@ async fn function_with_catalog_qualification_fails() {
     )
     .await;
 
-    // Catalog-qualified function (3 parts) - not supported
-    let sql_query = r#"SELECT catalog.schema.function(data) FROM eth.blocks"#;
+    // Catalog-qualified function referencing an unregistered catalog
+    let sql_query = r#"SELECT unknown_catalog.schema.function(data) FROM eth.blocks"#;
 
     //* When
     let resp = ctx
@@ -1527,7 +1527,7 @@ async fn function_with_catalog_qualification_fails() {
     assert_eq!(
         resp.status(),
         StatusCode::INTERNAL_SERVER_ERROR,
-        "schema resolution should fail with catalog-qualified function"
+        "schema resolution should fail with unregistered catalog function"
     );
 
     let response: ErrorResponse = resp

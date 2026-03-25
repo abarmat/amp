@@ -66,7 +66,7 @@ describe("SQL Intellisense Core Functionality", () => {
 
     test("should generate snippet for dataset-prefixed UDF", () => {
       generator = new UdfSnippetGenerator()
-      const udf = mockUDFs.find((u) => u.name === "${dataset}.eth_call")!
+      const udf = mockUDFs.find((u) => u.name === "rpc.<network>.eth_call")!
 
       const snippet = generator.createUdfSnippet(udf)
 
@@ -149,7 +149,7 @@ describe("SQL Intellisense Core Functionality", () => {
       const expectedNames = [
         "evm_decode_log",
         "evm_topic",
-        "${dataset}.eth_call",
+        "rpc.<network>.eth_call",
         "attestation_hash",
         "evm_decode_params",
         "evm_encode_params",
