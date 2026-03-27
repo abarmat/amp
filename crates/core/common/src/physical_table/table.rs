@@ -155,6 +155,7 @@ impl PhysicalTable {
     }
 
     /// Compute the canonical chain of segments.
+    #[tracing::instrument(skip_all, err)]
     pub async fn canonical_chain(&self) -> Result<Option<Chain>, CanonicalChainError> {
         let segments = self
             .segments()

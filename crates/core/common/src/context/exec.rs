@@ -416,6 +416,7 @@ impl ExecContextBuilder {
     /// components (including the per-query tiered memory pool). The session
     /// builder and its internals are not exposed through the
     /// [`ExecContextBuilder`] API.
+    #[tracing::instrument(skip_all, err)]
     pub async fn for_catalog(
         self,
         catalog: Catalog,

@@ -30,6 +30,7 @@ use crate::{
 /// - `datasets_cache`: Used to resolve references and retrieve dataset metadata
 /// - `data_store`: Used to query metadata database for physical parquet locations
 /// - `table_refs`: Parsed SQL table references with partial dataset references
+#[tracing::instrument(skip_all, err)]
 pub async fn create(
     datasets_cache: &DatasetsCache,
     data_store: &DataStore,

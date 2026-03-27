@@ -594,6 +594,7 @@ impl DataStore {
     /// This method retrieves file metadata from the database and combines it with the
     /// revision path to produce `PhyTableRevisionFileMetadata` entries that include
     /// the full object store path and parsed metadata.
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_revision_files(
         &self,
         revision: &PhyTableRevision,

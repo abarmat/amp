@@ -52,6 +52,7 @@ impl CatalogSnapshot {
     ///
     /// When `ignore_canonical_segments` is `true`, canonical chain filtering is
     /// skipped during snapshot creation.
+    #[tracing::instrument(skip_all, err)]
     pub async fn from_catalog(
         tables: Vec<LogicalTable>,
         udfs: Vec<ScalarUDF>,

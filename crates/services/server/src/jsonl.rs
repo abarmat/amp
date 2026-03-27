@@ -2,6 +2,7 @@ use axum::{
     Router,
     body::Body,
     extract::State,
+    http::HeaderMap,
     response::{IntoResponse, Response},
     routing::post,
 };
@@ -24,8 +25,19 @@ pub fn build_router(service: Service) -> Router {
         .with_state(service)
 }
 
-#[tracing::instrument(skip_all)]
-async fn handle_jsonl_request(State(service): State<Service>, request: String) -> Response {
+#[tracing::instrument(skip_all, fields(request_id = tracing::field::Empty))]
+async fn handle_jsonl_request(
+    State(service): State<Service>,
+    headers: HeaderMap,
+    request: String,
+) -> Response {
+    let request_id = headers
+        .get("cf-ray")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("{:016x}", rand::random::<u64>()));
+    tracing::Span::current().record("request_id", &request_id);
+
     // Step 1: Validate SQL string (non-empty, meaningful content)
     let sql_str = match request.parse::<SqlStr>() {
         Ok(sql) => sql,
