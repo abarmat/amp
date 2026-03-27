@@ -59,7 +59,9 @@ pub async fn connect_pool_with_config(
     let url = url.as_ref();
     let pool = db::ConnPool::connect(url, pool_config).await?;
     if auto_migrate {
+        tracing::info!("Running migrations on metadata database...");
         pool.run_migrations().await?;
+        tracing::info!("Migrations completed successfully");
     }
     Ok(MetadataDb {
         pool,
