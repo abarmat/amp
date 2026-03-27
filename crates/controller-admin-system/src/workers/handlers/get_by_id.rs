@@ -11,7 +11,8 @@ use worker::build_info::BuildInfo;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
+    workers::worker_service::WorkerServiceError,
 };
 
 /// Handler for the `GET /workers/{id}` endpoint
@@ -44,9 +45,9 @@ use crate::{
         ),
         responses(
             (status = 200, description = "Successfully retrieved worker information", body = WorkerDetailResponse),
-            (status = 400, description = "Invalid worker ID", body = crate::handlers::error::ErrorResponse),
-            (status = 404, description = "Worker not found", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid worker ID", body = crate::error::ErrorResponse),
+            (status = 404, description = "Worker not found", body = crate::error::ErrorResponse),
+            (status = 500, description = "Internal server error", body = crate::error::ErrorResponse)
         )
     )
 )]
@@ -62,7 +63,7 @@ pub async fn handler(
         }
     };
 
-    match ctx.scheduler.get_worker_by_id(&id).await {
+    match ctx.worker_service.get_worker_by_id(&id).await {
         Ok(Some(worker)) => Ok(Json(worker.into())),
         Ok(None) => Err(Error::NotFound { id }.into()),
         Err(err) => {
@@ -277,7 +278,7 @@ pub enum Error {
     /// - Query execution encounters an internal database error
     /// - Connection pool is exhausted or unavailable
     #[error("failed to get worker by ID")]
-    SchedulerGetWorker(#[source] crate::scheduler::GetWorkerError),
+    SchedulerGetWorker(#[source] WorkerServiceError),
 }
 
 impl IntoErrorResponse for Error {

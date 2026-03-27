@@ -1,0 +1,21 @@
+[package]
+name = "amp-controller-admin-system"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[features]
+# OpenAPI schema generation via utoipa
+utoipa = ["dep:utoipa"]
+
+[dependencies]
+amp-worker-core = { path = "../core/worker-core" }
+async-trait.workspace = true
+axum.workspace = true
+metadata-db = { path = "../core/metadata-db" }
+monitoring = { path = "../core/monitoring" }
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+utoipa = { version = "5.4.0", features = ["axum_extras"], optional = true }
+worker = { path = "../services/worker" }

@@ -6,7 +6,8 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
+    workers::worker_service::WorkerServiceError,
 };
 
 /// Handler for the `GET /workers` endpoint
@@ -34,13 +35,13 @@ use crate::{
         operation_id = "workers_list",
         responses(
             (status = 200, description = "Successfully retrieved workers", body = WorkersResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 500, description = "Internal server error", body = crate::error::ErrorResponse)
         )
     )
 )]
 pub async fn handler(State(ctx): State<Ctx>) -> Result<Json<WorkersResponse>, ErrorResponse> {
     // Fetch all workers from scheduler
-    let workers = ctx.scheduler.list_workers().await.map_err(|err| {
+    let workers = ctx.worker_service.list_workers().await.map_err(|err| {
         tracing::debug!(error = %err, error_source = logging::error_source(&err), "failed to list workers");
         Error::SchedulerListWorkers(err)
     })?;
@@ -77,7 +78,7 @@ pub enum Error {
     /// - Query execution encounters an internal database error
     /// - Connection pool is exhausted or unavailable
     #[error("failed to list workers")]
-    SchedulerListWorkers(#[source] crate::scheduler::ListWorkersError),
+    SchedulerListWorkers(#[source] WorkerServiceError),
 }
 
 impl IntoErrorResponse for Error {

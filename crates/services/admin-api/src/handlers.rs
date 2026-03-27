@@ -6,4 +6,3 @@ pub mod jobs;
 pub mod manifests;
 pub mod providers;
 pub mod schema;
-pub mod workers;

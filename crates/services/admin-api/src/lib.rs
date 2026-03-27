@@ -13,9 +13,9 @@ pub mod handlers;
 pub mod scheduler;
 
 use ctx::Ctx;
-use handlers::{datasets, jobs, manifests, providers, schema, workers};
+use handlers::{datasets, jobs, manifests, providers, schema};
 
-use crate::ctx::RevisionGuardImpl;
+use crate::ctx::{RevisionGuardImpl, WorkerServiceImpl};
 
 /// Create the admin API router with all routes registered
 ///
@@ -27,6 +27,9 @@ pub fn router(ctx: Ctx) -> Router<()> {
         datasets_cache: ctx.datasets_cache.clone(),
         revision_guard: Arc::new(RevisionGuardImpl(ctx.scheduler.clone())),
         data_store: ctx.data_store.clone(),
+    };
+    let system_ctx = amp_controller_admin_system::ctx::Ctx {
+        worker_service: Arc::new(WorkerServiceImpl(ctx.scheduler.clone())),
     };
 
     Router::new()
@@ -106,9 +109,8 @@ pub fn router(ctx: Ctx) -> Router<()> {
             get(providers::get_by_id::handler).delete(providers::delete_by_id::handler),
         )
         .route("/schema", post(schema::handler))
-        .route("/workers", get(workers::get_all::handler))
-        .route("/workers/{id}", get(workers::get_by_id::handler))
         .with_state(ctx)
+        .merge(amp_controller_admin_system::router().with_state(system_ctx))
         .merge(amp_controller_admin_tables::router().with_state(tables_ctx))
 }
 
@@ -169,8 +171,8 @@ pub fn router(ctx: Ctx) -> Router<()> {
         amp_controller_admin_tables::revisions::handlers::truncate::handler,
         amp_controller_admin_tables::revisions::handlers::prune::handler,
         // Worker endpoints
-        handlers::workers::get_all::handler,
-        handlers::workers::get_by_id::handler,
+        amp_controller_admin_system::workers::handlers::get_all::handler,
+        amp_controller_admin_system::workers::handlers::get_by_id::handler,
     ),
     components(schemas(
         // Common schemas
@@ -223,10 +225,10 @@ pub fn router(ctx: Ctx) -> Router<()> {
         amp_controller_admin_tables::revisions::handlers::truncate::TruncateResponse,
         amp_controller_admin_tables::revisions::handlers::prune::PruneResponse,
         // Worker schemas
-        handlers::workers::get_all::WorkerInfo,
-        handlers::workers::get_all::WorkersResponse,
-        handlers::workers::get_by_id::WorkerDetailResponse,
-        handlers::workers::get_by_id::WorkerMetadata,
+        amp_controller_admin_system::workers::handlers::get_all::WorkerInfo,
+        amp_controller_admin_system::workers::handlers::get_all::WorkersResponse,
+        amp_controller_admin_system::workers::handlers::get_by_id::WorkerDetailResponse,
+        amp_controller_admin_system::workers::handlers::get_by_id::WorkerMetadata,
     )),
     tags(
         (name = "datasets", description = "Dataset management endpoints"),

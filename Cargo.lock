@@ -28,6 +28,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 name = "admin-api"
 version = "0.1.0"
 dependencies = [
+ "amp-controller-admin-system",
  "amp-controller-admin-tables",
  "amp-data-store",
  "amp-datasets-registry",
@@ -977,6 +978,22 @@ dependencies = [
  "amp-config",
  "schemars 1.2.1",
  "serde_json",
+]
+
+[[package]]
+name = "amp-controller-admin-system"
+version = "0.1.0"
+dependencies = [
+ "amp-worker-core",
+ "async-trait",
+ "axum",
+ "metadata-db",
+ "monitoring",
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
+ "utoipa",
+ "worker",
 ]
 
 [[package]]
