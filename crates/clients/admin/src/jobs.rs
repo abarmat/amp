@@ -82,6 +82,80 @@ impl<'a> JobsClient<'a> {
         Self { client }
     }
 
+    /// Create a new job.
+    ///
+    /// POSTs to `/jobs` endpoint with a job descriptor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CreateError`] for network errors, invalid requests,
+    /// active job conflicts, or unexpected responses.
+    #[tracing::instrument(skip(self))]
+    pub async fn create(&self, request: &CreateJobRequest) -> Result<JobId, CreateError> {
+        let url = self.client.base_url().join(jobs_list()).expect("valid URL");
+
+        tracing::debug!("Sending POST request to create job");
+
+        let response = self
+            .client
+            .http()
+            .post(url.as_str())
+            .json(request)
+            .send()
+            .await
+            .map_err(|err| CreateError::Network {
+                url: url.to_string(),
+                source: err,
+            })?;
+
+        let status = response.status();
+        tracing::debug!(status = %status, "received API response");
+
+        match status.as_u16() {
+            202 => {
+                let resp: CreateJobResponse =
+                    response
+                        .json()
+                        .await
+                        .map_err(|err| CreateError::ResponseParse {
+                            url: url.to_string(),
+                            source: err,
+                        })?;
+                Ok(resp.job_id)
+            }
+            400 | 409 | 500 => {
+                let text = response
+                    .text()
+                    .await
+                    .map_err(|err| CreateError::ResponseParse {
+                        url: url.to_string(),
+                        source: err,
+                    })?;
+                let error_response: ErrorResponse =
+                    serde_json::from_str(&text).map_err(|_| CreateError::UnexpectedResponse {
+                        status: status.as_u16(),
+                        body: text.clone(),
+                    })?;
+                match error_response.error_code.as_str() {
+                    "INVALID_BODY" | "INVALID_LOCATION_ID" => {
+                        Err(CreateError::InvalidRequest(error_response.into()))
+                    }
+                    "NO_WORKERS_AVAILABLE" => {
+                        Err(CreateError::NoWorkersAvailable(error_response.into()))
+                    }
+                    "ACTIVE_JOB_CONFLICT" => {
+                        Err(CreateError::ActiveJobConflict(error_response.into()))
+                    }
+                    _ => Err(CreateError::Api(error_response.into())),
+                }
+            }
+            _ => Err(CreateError::UnexpectedResponse {
+                status: status.as_u16(),
+                body: response.text().await.unwrap_or_default(),
+            }),
+        }
+    }
+
     /// Get a job by ID.
     ///
     /// GETs from `/jobs/{id}` endpoint.
@@ -1275,4 +1349,55 @@ pub enum GetProgressError {
     /// Unexpected response from API
     #[error("unexpected response (status {status}): {message}")]
     UnexpectedResponse { status: u16, message: String },
+}
+
+/// Request body for creating a job via `POST /jobs`.
+///
+/// Dispatches on the `kind` field to determine the job type.
+#[derive(Debug, serde::Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum CreateJobRequest {
+    /// Schedule a garbage collection job for a physical table revision.
+    Gc {
+        /// The location ID of the physical table revision to garbage collect.
+        location_id: i64,
+    },
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct CreateJobResponse {
+    job_id: JobId,
+}
+
+/// Errors from [`JobsClient::create`].
+#[derive(Debug, thiserror::Error)]
+pub enum CreateError {
+    #[error("network error contacting {url}")]
+    Network {
+        url: String,
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[error("failed to parse response from {url}")]
+    ResponseParse {
+        url: String,
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[error("invalid request")]
+    InvalidRequest(#[source] ApiError),
+
+    #[error("no workers available")]
+    NoWorkersAvailable(#[source] ApiError),
+
+    #[error("active job already exists")]
+    ActiveJobConflict(#[source] ApiError),
+
+    #[error("API error")]
+    Api(#[source] ApiError),
+
+    #[error("unexpected response: status={status}, body={body}")]
+    UnexpectedResponse { status: u16, body: String },
 }

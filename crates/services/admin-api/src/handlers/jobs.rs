@@ -1,5 +1,6 @@
 //! Jobs HTTP handlers
 
+pub mod create;
 pub mod delete;
 pub mod delete_by_id;
 pub mod event_by_id;

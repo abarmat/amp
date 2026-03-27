@@ -79,7 +79,9 @@ pub fn router(ctx: Ctx) -> Router<()> {
         .route("/files/{file_id}", get(files::get_by_id::handler))
         .route(
             "/jobs",
-            get(jobs::get_all::handler).delete(jobs::delete::handler),
+            get(jobs::get_all::handler)
+                .post(jobs::create::handler)
+                .delete(jobs::delete::handler),
         )
         .route(
             "/jobs/{id}",
