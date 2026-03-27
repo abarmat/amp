@@ -10,7 +10,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /files/{file_id}` endpoint
@@ -48,9 +48,9 @@ use crate::{
         ),
         responses(
             (status = 200, description = "Successfully retrieved file information", body = FileInfo),
-            (status = 400, description = "Invalid file ID", body = crate::handlers::error::ErrorResponse),
-            (status = 404, description = "File not found", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid file ID", body = crate::error::ErrorResponse),
+            (status = 404, description = "File not found", body = crate::error::ErrorResponse),
+            (status = 500, description = "Internal server error", body = crate::error::ErrorResponse)
         )
     )
 )]

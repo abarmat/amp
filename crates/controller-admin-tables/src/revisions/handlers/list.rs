@@ -9,10 +9,8 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::{
-        error::{ErrorResponse, IntoErrorResponse},
-        revisions::get_by_id::RevisionInfo,
-    },
+    error::{ErrorResponse, IntoErrorResponse},
+    revisions::handlers::get_by_id::RevisionInfo,
 };
 
 /// Handler for the `GET /revisions` endpoint

@@ -4,7 +4,11 @@ version.workspace = true
 license-file.workspace = true
 edition.workspace = true
 
+[features]
+utoipa = ["dep:utoipa", "amp-controller-admin-tables/utoipa"]
+
 [dependencies]
+amp-controller-admin-tables = { path = "../../controller-admin-tables" }
 amp-data-store = { path = "../../core/data-store" }
 amp-datasets-raw = { path = "../../core/datasets-raw", package = "datasets-raw" }
 amp-datasets-registry = { path = "../../core/datasets-registry" }

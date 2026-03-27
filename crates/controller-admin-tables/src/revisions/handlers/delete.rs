@@ -1,5 +1,4 @@
 use amp_data_store::{DeleteTableRevisionError, GetRevisionByLocationIdError};
-use amp_worker_core::jobs::job_id::JobId;
 use axum::{
     extract::{Path, State, rejection::PathRejection},
     http::StatusCode,
@@ -9,8 +8,8 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
-    scheduler,
+    error::{ErrorResponse, IntoErrorResponse},
+    revisions::revision_guard::RevisionGuardError,
 };
 
 /// Handler for the `DELETE /revisions/{id}` endpoint
@@ -96,25 +95,19 @@ pub async fn handler(
         return Err(Error::RevisionIsActive { location_id }.into());
     }
 
-    if let Some(writer_job_id) = revision.writer {
-        let worker_job_id: JobId = writer_job_id.into();
-        let job = ctx
-            .scheduler
-            .get_job(worker_job_id)
+    if let Some(writer_job_id) = revision.writer
+        && ctx
+            .revision_guard
+            .check_writer_job(writer_job_id)
             .await
-            .map_err(Error::GetWriterJob)?;
-
-        if let Some(job) = job
-            && !job.status.is_terminal()
-        {
-            tracing::debug!(
-                location_id = %location_id,
-                writer_job_id = %writer_job_id,
-                job_status = %job.status,
-                "revision deletion rejected, writer job not terminal"
-            );
-            return Err(Error::WriterJobNotTerminal { location_id }.into());
-        }
+            .map_err(Error::CheckWriterJob)?
+    {
+        tracing::debug!(
+            location_id = %location_id,
+            writer_job_id = %writer_job_id,
+            "revision deletion rejected, writer job not terminal"
+        );
+        return Err(Error::WriterJobNotTerminal { location_id }.into());
     }
 
     let deleted = ctx
@@ -179,13 +172,13 @@ pub enum Error {
     #[error("Failed to get revision by location ID")]
     GetRevisionByLocationId(#[source] GetRevisionByLocationIdError),
 
-    /// Failed to get writer job
+    /// Failed to check writer job status
     ///
     /// This occurs when:
     /// - The database query to get the writer job fails
     /// - Database connection issues
     #[error("Failed to get writer job")]
-    GetWriterJob(#[source] scheduler::GetJobError),
+    CheckWriterJob(#[source] RevisionGuardError),
 
     /// Failed to delete revision
     ///
@@ -204,7 +197,7 @@ impl IntoErrorResponse for Error {
             Error::RevisionIsActive { .. } => "REVISION_IS_ACTIVE",
             Error::WriterJobNotTerminal { .. } => "WRITER_JOB_NOT_TERMINAL",
             Error::GetRevisionByLocationId(_) => "GET_REVISION_BY_LOCATION_ID_ERROR",
-            Error::GetWriterJob(_) => "GET_WRITER_JOB_ERROR",
+            Error::CheckWriterJob(_) => "GET_WRITER_JOB_ERROR",
             Error::DeleteRevision(_) => "DELETE_TABLE_REVISION_ERROR",
         }
     }
@@ -216,7 +209,7 @@ impl IntoErrorResponse for Error {
             Error::RevisionIsActive { .. } => StatusCode::CONFLICT,
             Error::WriterJobNotTerminal { .. } => StatusCode::CONFLICT,
             Error::GetRevisionByLocationId(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::GetWriterJob(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::CheckWriterJob(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::DeleteRevision(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

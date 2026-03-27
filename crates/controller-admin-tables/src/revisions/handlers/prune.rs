@@ -2,7 +2,6 @@ use std::{collections::HashSet, time::Duration};
 
 use amp_data_store::physical_table::PhyTableRevisionPath;
 use amp_parquet::meta::ParquetMeta;
-use amp_worker_core::jobs::{job_id::JobId, status::JobStatus};
 use axum::{
     Json,
     extract::{
@@ -20,8 +19,8 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
-    scheduler,
+    error::{ErrorResponse, IntoErrorResponse},
+    revisions::revision_guard::RevisionGuardError,
 };
 
 /// Handler for the `DELETE /revisions/{id}/prune` endpoint
@@ -121,30 +120,23 @@ pub async fn handler(
             Error::NotFound { location_id }
         })?;
 
-    if let Some(writer_job_id) = revision.writer {
-        let worker_job_id: JobId = writer_job_id.into();
-        let job = ctx
-            .scheduler
-            .get_job(worker_job_id)
+    if let Some(writer_job_id) = revision.writer
+        && ctx
+            .revision_guard
+            .check_writer_job(writer_job_id)
             .await
-            .map_err(Error::GetWriterJob)?;
-
-        if let Some(job) = job
-            && !job.status.is_terminal()
-        {
-            tracing::debug!(
-                location_id = %location_id,
-                writer_job_id = %writer_job_id,
-                job_status = %job.status,
-                "cannot prune revision with non-terminal writer job"
-            );
-            return Err(Error::WriterJobNotTerminal {
-                location_id,
-                job_id: writer_job_id,
-                status: job.status,
-            }
-            .into());
+            .map_err(Error::CheckWriterJob)?
+    {
+        tracing::debug!(
+            location_id = %location_id,
+            writer_job_id = %writer_job_id,
+            "cannot prune revision with non-terminal writer job"
+        );
+        return Err(Error::WriterJobNotTerminal {
+            location_id,
+            job_id: writer_job_id,
         }
+        .into());
     }
 
     // Build PhyTableRevision for accessing files
@@ -327,12 +319,11 @@ pub enum Error {
     /// - The revision has a writer job that is still running, scheduled, or stopping
     /// - The writer job must reach a terminal state before the revision can be pruned
     #[error(
-        "Revision with location ID '{location_id}' has writer job {job_id} in non-terminal state '{status}'"
+        "Revision with location ID '{location_id}' has writer job {job_id} in non-terminal state"
     )]
     WriterJobNotTerminal {
         location_id: LocationId,
         job_id: metadata_db::jobs::JobId,
-        status: JobStatus,
     },
 
     /// Failed to get revision by location ID
@@ -343,13 +334,13 @@ pub enum Error {
     #[error("Failed to get revision by location ID")]
     GetRevisionByLocationId(#[source] amp_data_store::GetRevisionByLocationIdError),
 
-    /// Failed to get writer job
+    /// Failed to check writer job status
     ///
     /// This occurs when:
     /// - The database query to get the writer job fails
     /// - Database connection issues
     #[error("Failed to get writer job")]
-    GetWriterJob(#[source] scheduler::GetJobError),
+    CheckWriterJob(#[source] RevisionGuardError),
 
     /// Failed to get files
     ///
@@ -390,7 +381,7 @@ impl IntoErrorResponse for Error {
             Error::NotFound { .. } => "REVISION_NOT_FOUND",
             Error::WriterJobNotTerminal { .. } => "WRITER_JOB_NOT_TERMINAL",
             Error::GetRevisionByLocationId(_) => "GET_REVISION_BY_LOCATION_ID_ERROR",
-            Error::GetWriterJob(_) => "GET_WRITER_JOB_ERROR",
+            Error::CheckWriterJob(_) => "GET_WRITER_JOB_ERROR",
             Error::GetFiles(_) => "GET_FILES_ERROR",
             Error::ParseMetadata(_) => "PARSE_METADATA_ERROR",
             Error::CanonicalChainPanicked(_) => "CANONICAL_CHAIN_PANICKED",
@@ -405,7 +396,7 @@ impl IntoErrorResponse for Error {
             Error::NotFound { .. } => axum::http::StatusCode::NOT_FOUND,
             Error::WriterJobNotTerminal { .. } => axum::http::StatusCode::CONFLICT,
             Error::GetRevisionByLocationId(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            Error::GetWriterJob(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Error::CheckWriterJob(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             Error::GetFiles(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             Error::ParseMetadata(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             Error::CanonicalChainPanicked(_) => axum::http::StatusCode::INTERNAL_SERVER_ERROR,

@@ -1,0 +1,27 @@
+[package]
+name = "amp-controller-admin-tables"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[features]
+# OpenAPI schema generation via utoipa
+utoipa = ["dep:utoipa"]
+
+[dependencies]
+amp-data-store = { path = "../core/data-store" }
+amp-datasets-registry = { path = "../core/datasets-registry" }
+amp-parquet = { path = "../core/parquet" }
+async-trait.workspace = true
+axum.workspace = true
+common = { path = "../core/common" }
+datasets-common = { path = "../core/datasets-common" }
+futures.workspace = true
+metadata-db = { path = "../core/metadata-db" }
+monitoring = { path = "../core/monitoring" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+utoipa = { version = "5.4.0", features = ["axum_extras"], optional = true }

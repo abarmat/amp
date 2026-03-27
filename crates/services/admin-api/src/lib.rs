@@ -1,8 +1,10 @@
 //! Amp Admin API
 
+use std::sync::Arc;
+
 use axum::{
     Router,
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
 };
 
 pub mod build_info;
@@ -11,12 +13,22 @@ pub mod handlers;
 pub mod scheduler;
 
 use ctx::Ctx;
-use handlers::{datasets, files, jobs, manifests, providers, revisions, schema, workers};
+use handlers::{datasets, jobs, manifests, providers, schema, workers};
+
+use crate::ctx::RevisionGuardImpl;
 
 /// Create the admin API router with all routes registered
 ///
 /// Returns a router configured with all admin API endpoints.
 pub fn router(ctx: Ctx) -> Router<()> {
+    let tables_ctx = amp_controller_admin_tables::ctx::Ctx {
+        metadata_db: ctx.metadata_db.clone(),
+        datasets_registry: ctx.datasets_registry.clone(),
+        datasets_cache: ctx.datasets_cache.clone(),
+        revision_guard: Arc::new(RevisionGuardImpl(ctx.scheduler.clone())),
+        data_store: ctx.data_store.clone(),
+    };
+
     Router::new()
         .route(
             "/datasets",
@@ -54,29 +66,6 @@ pub fn router(ctx: Ctx) -> Router<()> {
             "/datasets/{namespace}/{name}/versions/{revision}/jobs",
             get(datasets::list_jobs::handler),
         )
-        .route(
-            "/revisions",
-            get(revisions::list::handler).post(revisions::create::handler),
-        )
-        .route(
-            "/revisions/{id}",
-            get(revisions::get_by_id::handler).delete(revisions::delete::handler),
-        )
-        .route("/revisions/{id}/restore", post(revisions::restore::handler))
-        .route(
-            "/revisions/{id}/truncate",
-            delete(revisions::truncate::handler),
-        )
-        .route("/revisions/{id}/prune", delete(revisions::prune::handler))
-        .route(
-            "/revisions/{id}/activate",
-            post(revisions::activate::handler),
-        )
-        .route(
-            "/revisions/deactivate",
-            post(revisions::deactivate::handler),
-        )
-        .route("/files/{file_id}", get(files::get_by_id::handler))
         .route(
             "/jobs",
             get(jobs::get_all::handler)
@@ -120,6 +109,7 @@ pub fn router(ctx: Ctx) -> Router<()> {
         .route("/workers", get(workers::get_all::handler))
         .route("/workers/{id}", get(workers::get_by_id::handler))
         .with_state(ctx)
+        .merge(amp_controller_admin_tables::router().with_state(tables_ctx))
 }
 
 #[cfg(feature = "utoipa")]
@@ -165,19 +155,19 @@ pub fn router(ctx: Ctx) -> Router<()> {
         handlers::providers::create::handler,
         handlers::providers::delete_by_id::handler,
         // Files endpoints
-        handlers::files::get_by_id::handler,
+        amp_controller_admin_tables::files::handlers::get_by_id::handler,
         // Schema endpoints
         handlers::schema::handler,
         // Revision endpoints
-        handlers::revisions::list::handler,
-        handlers::revisions::restore::handler,
-        handlers::revisions::activate::handler,
-        handlers::revisions::deactivate::handler,
-        handlers::revisions::get_by_id::handler,
-        handlers::revisions::create::handler,
-        handlers::revisions::delete::handler,
-        handlers::revisions::truncate::handler,
-        handlers::revisions::prune::handler,
+        amp_controller_admin_tables::revisions::handlers::list::handler,
+        amp_controller_admin_tables::revisions::handlers::restore::handler,
+        amp_controller_admin_tables::revisions::handlers::activate::handler,
+        amp_controller_admin_tables::revisions::handlers::deactivate::handler,
+        amp_controller_admin_tables::revisions::handlers::get_by_id::handler,
+        amp_controller_admin_tables::revisions::handlers::create::handler,
+        amp_controller_admin_tables::revisions::handlers::delete::handler,
+        amp_controller_admin_tables::revisions::handlers::truncate::handler,
+        amp_controller_admin_tables::revisions::handlers::prune::handler,
         // Worker endpoints
         handlers::workers::get_all::handler,
         handlers::workers::get_by_id::handler,
@@ -218,20 +208,20 @@ pub fn router(ctx: Ctx) -> Router<()> {
         handlers::providers::provider_info::ProviderInfo,
         handlers::providers::get_all::ProvidersResponse,
         // File schemas
-        handlers::files::get_by_id::FileInfo,
+        amp_controller_admin_tables::files::handlers::get_by_id::FileInfo,
         // Schema schemas
         handlers::schema::SchemaRequest,
         handlers::schema::SchemaResponse,
         // Revision schemas
-        handlers::revisions::restore::RestoreResponse,
-        handlers::revisions::activate::ActivationPayload,
-        handlers::revisions::deactivate::DeactivationPayload,
-        handlers::revisions::get_by_id::RevisionInfo,
-        handlers::revisions::get_by_id::RevisionMetadataInfo,
-        handlers::revisions::create::CreatePayload,
-        handlers::revisions::create::CreateRevisionResponse,
-        handlers::revisions::truncate::TruncateResponse,
-        handlers::revisions::prune::PruneResponse,
+        amp_controller_admin_tables::revisions::handlers::restore::RestoreResponse,
+        amp_controller_admin_tables::revisions::handlers::activate::ActivationPayload,
+        amp_controller_admin_tables::revisions::handlers::deactivate::DeactivationPayload,
+        amp_controller_admin_tables::revisions::handlers::get_by_id::RevisionInfo,
+        amp_controller_admin_tables::revisions::handlers::get_by_id::RevisionMetadataInfo,
+        amp_controller_admin_tables::revisions::handlers::create::CreatePayload,
+        amp_controller_admin_tables::revisions::handlers::create::CreateRevisionResponse,
+        amp_controller_admin_tables::revisions::handlers::truncate::TruncateResponse,
+        amp_controller_admin_tables::revisions::handlers::prune::PruneResponse,
         // Worker schemas
         handlers::workers::get_all::WorkerInfo,
         handlers::workers::get_all::WorkersResponse,

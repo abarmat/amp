@@ -12,10 +12,8 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::{
-        common::{RegisterRevisionFilesError, register_revision_files},
-        error::{ErrorResponse, IntoErrorResponse},
-    },
+    error::{ErrorResponse, IntoErrorResponse},
+    revisions::register_files::{RegisterRevisionFilesError, register_revision_files},
 };
 
 /// Handler for the `POST /revisions/{id}/restore` endpoint
@@ -104,11 +102,11 @@ pub async fn handler(
     Ok(Json(RestoreResponse { total_files }))
 }
 
-/// Response for restore operation                                                                                                                          
+/// Response for restore operation
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct RestoreResponse {
-    /// Total number of files restored                                                                                                             
+    /// Total number of files restored
     pub total_files: i32,
 }
 

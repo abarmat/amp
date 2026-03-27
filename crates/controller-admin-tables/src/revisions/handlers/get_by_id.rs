@@ -12,7 +12,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /revisions/{id}` endpoint
@@ -85,22 +85,22 @@ pub async fn handler(
     Ok(Json(revision_info))
 }
 
-/// Revision information returned by the API                                                                                                                          
+/// Revision information returned by the API
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct RevisionInfo {
-    /// Unique identifier for this revision (location ID)                                                                                                             
+    /// Unique identifier for this revision (location ID)
     #[cfg_attr(feature = "utoipa", schema(value_type = i64))]
     pub id: LocationId,
-    /// Relative path to the storage location                                                                                                                         
+    /// Relative path to the storage location
     pub path: String,
-    /// Whether this revision is currently active                                                                                                                     
+    /// Whether this revision is currently active
     pub active: bool,
-    /// Writer job ID responsible for populating this revision, if one exists                                                                                         
+    /// Writer job ID responsible for populating this revision, if one exists
     #[cfg_attr(feature = "utoipa", schema(value_type = Option<i64>))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub writer: Option<JobId>,
-    /// Metadata about the revision                                                                                                                                   
+    /// Metadata about the revision
     pub metadata: RevisionMetadataInfo,
 }
 

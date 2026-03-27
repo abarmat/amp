@@ -28,3 +28,29 @@ pub struct Ctx {
     /// Build information (version, git SHA, etc.)
     pub build_info: BuildInfo,
 }
+
+/// Bridges the admin-api's [`Scheduler`] trait to the
+/// [`RevisionGuard`](amp_controller_admin_tables::revisions::revision_guard::RevisionGuard)
+/// trait expected by `amp-controller-admin-tables`.
+///
+/// Converts `metadata_db::jobs::JobId` to the worker-core job ID, delegates to
+/// [`SchedulerJobs::get_job`](crate::scheduler::SchedulerJobs::get_job), and maps the
+/// result to the bool contract: `true` = active writer (blocks the operation),
+/// `false` = terminal or not found (safe to proceed).
+pub(crate) struct RevisionGuardImpl(pub(crate) Arc<dyn Scheduler>);
+
+#[async_trait::async_trait]
+impl amp_controller_admin_tables::revisions::revision_guard::RevisionGuard for RevisionGuardImpl {
+    async fn check_writer_job(
+        &self,
+        job_id: metadata_db::jobs::JobId,
+    ) -> Result<bool, amp_controller_admin_tables::revisions::revision_guard::RevisionGuardError>
+    {
+        let worker_job_id: amp_worker_core::jobs::job_id::JobId = job_id.into();
+        let job = self.0.get_job(worker_job_id).await.map_err(|err| {
+            amp_controller_admin_tables::revisions::revision_guard::RevisionGuardError(err.0)
+        })?;
+
+        Ok(matches!(job, Some(job) if !job.status.is_terminal()))
+    }
+}
