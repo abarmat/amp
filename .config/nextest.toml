@@ -24,6 +24,7 @@ default-filter = '''
   - test(tests::it_admin_api_datasets_stop_job::stop_running_job_succeeds)
   - test(tests::it_dependencies::intra_deps_test)
   - test(tests::it_dependencies::multi_version_test)
+  - test(tests::it_dump::tempo_single_dump)
   - test(tests::it_dump::base_firehose_single_dump)
   - test(tests::it_dump::eth_firehose_single_dump)
   - test(tests::it_dump::evm_rpc_base_single_dump)

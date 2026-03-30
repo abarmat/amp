@@ -138,6 +138,7 @@ Evaluate test coverage and quality:
 - Integration tests that should be unit tests (or vice versa)
 - Changes to existing tests that weaken assertions
 - Changes to tests that are actually a symptom of breaking changes to user-visible behaviour
+- Tests that require external environment variables (e.g., API keys, RPC URLs) to run must be added to the omit list in the `[profile.local]` section of `.config/nextest.toml` so they are excluded from local test runs
 
 ### 8. Performance
 
