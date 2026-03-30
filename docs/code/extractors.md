@@ -11,7 +11,7 @@ scope: "global"
 
 ## PURPOSE
 
-This document establishes the common architecture for blockchain data extraction crates. All extractors follow the same structural patterns to ensure consistency across data sources (EVM RPC, Firehose, Solana).
+This document establishes the common architecture for blockchain data extraction crates. All extractors follow the same structural patterns to ensure consistency across data sources (EVM RPC, Firehose, Solana, Tempo).
 
 ## TABLE OF CONTENTS
 
@@ -127,6 +127,7 @@ pub struct EvmRpcDatasetKindError(String);
 | evm-rpc  | `EvmRpcDatasetKind`   | `"evm-rpc"`  |
 | solana   | `SolanaDatasetKind`   | `"solana"`   |
 | firehose | `FirehoseDatasetKind` | `"firehose"` |
+| tempo    | `TempoDatasetKind`    | `"tempo"`    |
 
 ## MANIFEST STRUCTURE
 

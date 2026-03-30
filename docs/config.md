@@ -108,7 +108,7 @@ Example: A dataset with namespace `my_org` and name `eth_mainnet` will have tabl
 
 Conceptually there are two categories of datasets:
 
-- **Raw datasets**: Extracted from external systems such as Firehose or EVM RPC endpoints
+- **Raw datasets**: Extracted from external systems such as Firehose, EVM RPC, or Tempo endpoints
 - **Derived datasets**: Defined as SQL transformations over other datasets
 
 ## Raw datasets
@@ -117,6 +117,7 @@ Details for the raw datasets currently implemented:
 
 - EVM RPC [dataset docs](../crates/extractors/evm-rpc/README.md)
 - Firehose [dataset docs](../crates/extractors/firehose/README.md)
+- Tempo [dataset docs](feat/datasets-raw-tempo.md)
 
 ### Generating Raw Dataset Manifests
 
@@ -134,6 +135,9 @@ ampctl manifest generate --network mainnet --kind evm-rpc --start-block 1000000
 # Generate manifest for Firehose dataset
 ampctl manifest generate --network mainnet --kind firehose
 
+# Generate manifest for Tempo dataset
+ampctl manifest generate --network mainnet --kind tempo
+
 # Output to file
 ampctl manifest generate --network mainnet --kind evm-rpc -o ./manifests_dir/eth_mainnet.json
 
@@ -147,9 +151,9 @@ ampctl manifest generate --network mainnet --kind evm-rpc --finalized-blocks-onl
 #### Parameters
 
 - `--network`: Network name (e.g., mainnet, goerli, polygon, anvil)
-- `--kind`: Dataset type (evm-rpc, firehose)
+- `--kind`: Dataset type (evm-rpc, firehose, tempo)
 - `--out` (or `-o`): Optional output file or directory path. If a directory is specified, the file will be named `{kind}.json`. If not specified, the manifest is printed to stdout.
-- `--start-block`: Starting block number for extraction (defaults to 0). Applies to evm-rpc and firehose datasets.
+- `--start-block`: Starting block number for extraction (defaults to 0). Applies to evm-rpc, firehose, and tempo datasets.
 - `--finalized-blocks-only`: Only include finalized block data (flag, defaults to false)
 
 The generated manifest includes the complete schema definition with all tables and columns for the specified dataset type and network.
@@ -181,6 +185,7 @@ The `kind` field in a provider configuration must be one of the following:
 
 - **`evm-rpc`**: Ethereum-compatible JSON-RPC endpoints (supports HTTP, WebSocket, and IPC connections)
 - **`firehose`**: Firehose gRPC endpoints
+- **`tempo`**: Tempo RPC endpoints (supports HTTP, WebSocket, and IPC connections)
 
 Each kind has its own set of required and optional configuration fields.
 
@@ -200,5 +205,7 @@ Complete configuration schemas for each provider kind are available in the [docs
 - **[evm-rpc.spec.json](schemas/providers/evm-rpc.spec.json)** - Configuration schema for Ethereum-compatible JSON-RPC endpoints. Includes fields for URL (HTTP/WebSocket/IPC), concurrent request limits, RPC batching, rate limiting, and receipt fetching options.
 
 - **[firehose.spec.json](schemas/providers/firehose.spec.json)** - Configuration schema for StreamingFast Firehose gRPC endpoints. Includes fields for gRPC URL and authentication token.
+
+- **[tempo.spec.json](schemas/providers/tempo.spec.json)** - Configuration schema for Tempo RPC endpoints. Includes fields for URL (HTTP/WebSocket/IPC), concurrent request limits, RPC batching, rate limiting, authentication, and receipt fetching options.
 
 These schema files document all available configuration fields for each provider kind, including both required and optional parameters with their default values.

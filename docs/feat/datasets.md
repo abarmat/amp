@@ -21,7 +21,7 @@ Datasets are the core data abstraction in Amp, describing the shape and structur
 
 - **Dataset**: A named, versioned collection of tables with an explicit Arrow schema, identified by a content-addressable hash reference.
 - **Manifest**: A JSON document that fully describes a dataset — its kind, tables, schemas, and kind-specific configuration
-- **Kind**: The dataset type that determines the schema structure and data source expectations (`evm-rpc`, `firehose`, `solana`, `manifest`, `static`)
+- **Kind**: The dataset type that determines the schema structure and data source expectations (`evm-rpc`, `firehose`, `solana`, `tempo`, `manifest`, `static`)
 - **Table**: A named set of rows with a fixed Arrow schema. Raw tables include a reserved `_block_num` column for block ordering
 - **Block Number**: A `u64` value (`BlockNum`) representing the chain height at which data was produced. Raw and derived datasets are block-indexed; static datasets are not
 

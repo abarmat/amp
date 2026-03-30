@@ -61,6 +61,12 @@ ampctl provider register my_firehose \
   --url '${FIREHOSE_URL}' \
   --token '${FIREHOSE_TOKEN}'
 
+# Tempo provider
+ampctl provider register my_tempo_rpc \
+  --kind tempo \
+  --network mainnet \
+  --url '${TEMPO_RPC_URL}'
+
 # Anvil (local development - IPC)
 ampctl provider register anvil_ipc \
   --kind evm-rpc \

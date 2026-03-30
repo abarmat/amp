@@ -72,12 +72,13 @@ The implementation type that determines how a [dataset](#dataset) processes data
 - **derived**: Transforms and combines data from other datasets using SQL [queries](#query)
 - **evm-rpc**: Extracts blockchain data via Ethereum-compatible JSON-RPC endpoints
 - **firehose**: Streams real-time blockchain data through StreamingFast Firehose protocol
+- **tempo**: Extracts blockchain data via Tempo RPC endpoints
 
 ### Dataset Category
 
 A high-level classification grouping [datasets](#dataset) by their data processing approach:
 
-- **Raw** (a.k.a. **Extractor Datasets**): Extracts data directly from external blockchain sources (includes _evm-rpc_ and _firehose_ [kinds](#dataset-kind))
+- **Raw** (a.k.a. **Extractor Datasets**): Extracts data directly from external blockchain sources (includes _evm-rpc_, _firehose_, and _tempo_ [kinds](#dataset-kind))
 - **Derived**: Transforms and combines data from existing datasets (_derived_ [kind](#dataset-kind))
 
 ### Physical Table Revision
@@ -148,7 +149,7 @@ The administrative API exposed by the [controller](#controller) for managing dat
 
 ### Provider
 
-A named configuration that defines a connection to an external blockchain data source. Providers abstract connection details (endpoints, credentials, rate limits) from [dataset](#dataset) definitions, enabling reusability and centralized management. Each provider specifies a [kind](#dataset-kind) (evm-rpc, firehose, solana) and network (mainnet, base, etc.). [Datasets](#dataset) reference providers by matching their kind and network requirements, with the system automatically resolving and load-balancing across available providers.
+A named configuration that defines a connection to an external blockchain data source. Providers abstract connection details (endpoints, credentials, rate limits) from [dataset](#dataset) definitions, enabling reusability and centralized management. Each provider specifies a [kind](#dataset-kind) (evm-rpc, firehose, solana, tempo) and network (mainnet, base, etc.). [Datasets](#dataset) reference providers by matching their kind and network requirements, with the system automatically resolving and load-balancing across available providers.
 
 ### Metadata Database
 

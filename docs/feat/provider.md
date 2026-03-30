@@ -9,7 +9,7 @@ components: "crate:dataset-store,crate:common"
 
 ## Summary
 
-Providers are external data source configurations that enable datasets to connect to blockchain networks and static data stores. They abstract connection details from dataset definitions, allowing reusable, shareable configurations across multiple datasets. The provider system supports multiple blockchain protocols including EVM JSON-RPC, StreamingFast Firehose, and Solana, as well as static CSV-backed datasets via object store.
+Providers are external data source configurations that enable datasets to connect to blockchain networks and static data stores. They abstract connection details from dataset definitions, allowing reusable, shareable configurations across multiple datasets. The provider system supports multiple blockchain protocols including EVM JSON-RPC, StreamingFast Firehose, Tempo, and Solana, as well as static CSV-backed datasets via object store.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ Providers are external data source configurations that enable datasets to connec
 ## Key Concepts
 
 - **Provider**: A named configuration representing a connection to a blockchain data source
-- **Provider Kind**: The protocol type (evm-rpc, firehose, solana, static)
+- **Provider Kind**: The protocol type (evm-rpc, firehose, solana, tempo, static)
 - **Network**: The blockchain network identifier (mainnet, goerli, base, etc.)
 - **Provider Resolution**: Automatic matching of datasets to compatible providers by kind and network
 
@@ -57,4 +57,5 @@ Dataset Manifest → Provider Resolution → Provider Config → Blockchain Conn
 | `evm-rpc`  | JSON-RPC       | EVM-compatible chains via HTTP/WS/IPC           |
 | `firehose` | gRPC           | High-throughput streaming from StreamingFast    |
 | `solana`   | JSON-RPC + CAR | Solana blockchain with Old Faithful archive     |
+| `tempo`    | JSON-RPC       | Tempo RPC endpoints via HTTP/WS/IPC             |
 | `static`   | Object Store   | Static CSV-backed datasets via amp-object-store |

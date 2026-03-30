@@ -2,7 +2,7 @@
 name: "providers-registry"
 description: "Provider configuration storage, CRUD operations, caching, and blockchain client creation. Load when working with provider management, RPC/Firehose endpoints, or blockchain data source configuration"
 type: component
-components: "crate:amp-providers-registry,crate:object-store,crate:datasets-derived,crate:evm-rpc-datasets,crate:firehose-datasets,crate:solana-datasets"
+components: "crate:amp-providers-registry,crate:object-store,crate:datasets-derived,crate:evm-rpc-datasets,crate:firehose-datasets,crate:solana-datasets,crate:tempo-datasets"
 ---
 
 # Providers Registry
@@ -61,7 +61,7 @@ The Providers Registry is a storage layer for provider configurations and a fact
 
 The registry creates clients that consume data from external provider endpoints. Two distinct client types serve different purposes:
 
-1. **Block Stream Clients**: Used for extracting raw blockchain data (blocks, transactions, logs) from data sources like Firehose, EVM RPC, or Solana providers. These clients stream blocks for dataset population.
+1. **Block Stream Clients**: Used for extracting raw blockchain data (blocks, transactions, logs) from data sources like Firehose, EVM RPC, Tempo, or Solana providers. These clients stream blocks for dataset population.
 
 2. **EVM RPC Providers**: Used for executing `eth_call` operations against EVM chains. These providers handle read-only contract interactions and state queries. Only available for EVM chains.
 

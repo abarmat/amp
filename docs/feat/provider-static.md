@@ -26,7 +26,7 @@ The static provider enables serving pre-computed CSV datasets from object stores
 - **Object Store Root**: The base URL pointing to the directory containing CSV files, supporting `file://`, `s3://`, and `gs://` schemes via `amp-object-store`
 - **Schema Inference**: Automatic detection of column types by sampling rows from CSV files, controlled by `schema_inference_max_rows`
 - **In-Memory Cache**: An optional byte-budget cache that keeps frequently accessed objects in memory, controlled by `in_memory_max_bytes`
-- **Static Provider Kind**: The `"static"` provider kind identifier, distinct from blockchain provider kinds (`evm-rpc`, `firehose`, `solana`)
+- **Static Provider Kind**: The `"static"` provider kind identifier, distinct from blockchain provider kinds (`evm-rpc`, `firehose`, `solana`, `tempo`)
 
 ## Configuration
 

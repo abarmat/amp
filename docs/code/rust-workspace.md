@@ -53,6 +53,7 @@ The Amp workspace follows a hierarchical organization under the `crates/` direct
 
 - **`evm-rpc`**: Ethereum JSON-RPC data extraction (blocks, transactions, logs)
 - **`firehose`**: StreamingFast Firehose protocol implementation
+- **`tempo`**: Tempo RPC data extraction (blocks, transactions, logs)
 
 ### `crates/services/` - Server Components
 

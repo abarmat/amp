@@ -37,7 +37,7 @@ ampctl communicates with the Amp controller's Admin API, providing CLI access to
 | Job Control            | Monitor, stop, delete extraction jobs                     |
 | Table Revision Control | Activate, deactivate, and manage table revision lifecycle |
 | Storage Management     | Query storage locations and file metadata                 |
-| Provider Configuration | Manage EVM RPC and Firehose sources                       |
+| Provider Configuration | Manage EVM RPC, Firehose, and Tempo sources                |
 | Worker Monitoring      | List workers and check heartbeat status                   |
 | Schema Analysis        | Validate SQL queries and infer schemas                    |
 | Data Verification      | Verify dataset integrity                                  |

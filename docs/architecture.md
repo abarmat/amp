@@ -13,7 +13,7 @@ Project Amp is a high-performance ETL (Extract, Transform, Load) architecture fo
 
 ## Data Flow
 
-1. **Extract**: Pull data from blockchain sources (EVM RPC, Firehose, Solana, etc.)
+1. **Extract**: Pull data from blockchain sources (EVM RPC, Firehose, Solana, Tempo, etc.)
 2. **Transform**: Process data using SQL queries with custom UDFs
 3. **Store**: Save as Parquet files (columnar format optimized for analytics)
 4. **Serve**: Provide query interfaces (Arrow Flight gRPC, JSON Lines HTTP)
@@ -63,6 +63,12 @@ Features:
 - Real-time blockchain data streaming
 - Tables: blocks, transactions, logs, calls
 - Protocol buffer-based
+
+#### Tempo (`tempo-datasets`)
+
+- Connects to Tempo RPC endpoints
+- Tables: blocks, transactions, logs
+- Supports HTTP, WebSocket, and IPC connections
 
 #### Solana (`solana`)
 

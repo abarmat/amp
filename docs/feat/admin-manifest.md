@@ -25,7 +25,7 @@ Manifest commands manage content-addressable manifest storage independently from
 - **Manifest**: A JSON document describing a dataset's schema, tables, and extraction configuration
 - **Content-Addressable Storage**: Manifests are identified by their SHA-256 content hash, enabling deduplication
 - **Orphaned Manifest**: A manifest with no dataset links (`dataset_count: 0`), eligible for pruning
-- **Dataset Kind**: The type of blockchain data source (`evm-rpc`, `firehose`, `solana`)
+- **Dataset Kind**: The type of blockchain data source (`evm-rpc`, `firehose`, `solana`, `tempo`)
 
 ## Usage
 
@@ -42,6 +42,9 @@ ampctl manifest generate --kind firehose --network mainnet --out ./manifest.json
 
 # Generate with a custom start block
 ampctl manifest generate --kind solana --network mainnet --start-block 100000
+
+# Generate a Tempo manifest
+ampctl manifest generate --kind tempo --network mainnet
 
 # Only finalized blocks
 ampctl manifest generate --kind evm-rpc --network mainnet --finalized-blocks-only

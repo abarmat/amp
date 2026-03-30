@@ -47,7 +47,7 @@ For detailed information about operational modes, deployment patterns, and scali
 - **Dataset Management**: List, retrieve, register datasets with versioning; trigger extraction jobs; query schemas and manifests
 - **Job Control**: List, monitor, stop, and delete jobs; trigger extractions with configurable end blocks; bulk cleanup operations
 - **Storage Management**: List and query storage locations (local, S3, GCS, Azure); manage file metadata and Parquet statistics
-- **Provider Configuration**: Create, retrieve, list, and delete provider configurations for EVM RPC and Firehose data sources
+- **Provider Configuration**: Create, retrieve, list, and delete provider configurations for EVM RPC, Firehose, and Tempo data sources
 - **Worker Monitoring**: List active workers and monitor heartbeat status across distributed deployments
 - **Schema Analysis**: Validate SQL queries against registered datasets; infer output schemas; extract network dependencies
 
