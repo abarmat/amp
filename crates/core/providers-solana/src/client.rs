@@ -252,8 +252,11 @@ impl BlockStreamer for Client {
                 // Auto mode: skip archive for recent slots, use it for historical data
                 match self.main_rpc_client.get_slot(self.metrics.clone()).await {
                     Ok(current_slot) => {
-                        let threshold = current_slot.saturating_sub(10_000);
-                        let skip_archive = start > threshold;
+                        // The CAR archive is usually 1-2 epochs behind the latest block,
+                        // so a threshold of 3 epochs should be safe.
+                        let skip_archive = current_slot
+                            .checked_sub(3 * solana_clock::DEFAULT_SLOTS_PER_EPOCH)
+                            .is_some_and(|threshold| start > threshold);
 
                         if skip_archive {
                             tracing::info!(
@@ -265,7 +268,6 @@ impl BlockStreamer for Client {
                             tracing::info!(
                                 start_slot = start,
                                 current_slot = current_slot,
-                                threshold,
                                 "Using archive mode (historical slots, use_archive = auto)"
                             );
                         }
