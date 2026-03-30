@@ -9,7 +9,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /manifests/{hash}/datasets` endpoint

@@ -14,15 +14,13 @@ use datasets_common::{
 use monitoring::logging;
 
 use crate::{
-    ctx::Ctx,
-    handlers::{
-        common::{
-            DatasetKind, ManifestHeader, ManifestValidationError, ParseDerivedManifestError,
-            ParseRawManifestError, parse_and_canonicalize_derived_dataset_manifest,
-            parse_and_canonicalize_raw_dataset_manifest,
-        },
-        error::{ErrorResponse, IntoErrorResponse},
+    common::{
+        DatasetKind, ManifestHeader, ManifestValidationError, ParseDerivedManifestError,
+        ParseRawManifestError, parse_and_canonicalize_derived_dataset_manifest,
+        parse_and_canonicalize_raw_dataset_manifest,
     },
+    ctx::Ctx,
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `POST /manifests` endpoint
@@ -71,8 +69,8 @@ use crate::{
         request_body = serde_json::Value,
         responses(
             (status = 201, description = "Manifest successfully registered", body = RegisterManifestResponse),
-            (status = 400, description = "Invalid request format or manifest", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid request format or manifest", body = ErrorResponse),
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

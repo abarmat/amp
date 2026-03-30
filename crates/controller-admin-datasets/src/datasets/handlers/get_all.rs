@@ -6,7 +6,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /datasets` endpoint
@@ -38,7 +38,7 @@ use crate::{
         operation_id = "datasets_list",
         responses(
             (status = 200, description = "Returns all datasets", body = DatasetsResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

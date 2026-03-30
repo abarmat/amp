@@ -3,7 +3,7 @@ use datasets_common::hash::Hash;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /manifests` endpoint
@@ -35,7 +35,7 @@ use crate::{
         operation_id = "list_all_manifests",
         responses(
             (status = 200, description = "Successfully retrieved all manifests", body = ManifestsResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

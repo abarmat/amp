@@ -13,7 +13,7 @@ pub mod handlers;
 pub mod scheduler;
 
 use ctx::Ctx;
-use handlers::{datasets, jobs, manifests, providers, schema};
+use handlers::{datasets, jobs, providers};
 
 use crate::ctx::{RevisionGuardImpl, WorkerServiceImpl};
 
@@ -31,39 +31,18 @@ pub fn router(ctx: Ctx) -> Router<()> {
     let system_ctx = amp_controller_admin_system::ctx::Ctx {
         worker_service: Arc::new(WorkerServiceImpl(ctx.scheduler.clone())),
     };
+    let datasets_ctx = amp_controller_admin_datasets::ctx::Ctx {
+        metadata_db: ctx.metadata_db.clone(),
+        datasets_registry: ctx.datasets_registry.clone(),
+        datasets_cache: ctx.datasets_cache.clone(),
+        ethcall_udfs_cache: ctx.ethcall_udfs_cache.clone(),
+        data_store: ctx.data_store.clone(),
+    };
 
     Router::new()
         .route(
-            "/datasets",
-            get(datasets::list_all::handler).post(datasets::register::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}",
-            get(datasets::get::handler).delete(datasets::delete::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}/versions",
-            get(datasets::list_versions::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}/versions/{version}",
-            get(datasets::get::handler).delete(datasets::delete_version::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}/versions/{revision}/manifest",
-            get(datasets::get_manifest::handler),
-        )
-        .route(
             "/datasets/{namespace}/{name}/versions/{revision}/deploy",
             post(datasets::deploy::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}/versions/{revision}/restore",
-            post(datasets::restore::handler),
-        )
-        .route(
-            "/datasets/{namespace}/{name}/versions/{revision}/tables/{table_name}/restore",
-            post(datasets::restore_table::handler),
         )
         .route(
             "/datasets/{namespace}/{name}/versions/{revision}/jobs",
@@ -87,20 +66,6 @@ pub fn router(ctx: Ctx) -> Router<()> {
             get(jobs::event_by_id::handler),
         )
         .route(
-            "/manifests",
-            get(manifests::list_all::handler)
-                .post(manifests::register::handler)
-                .delete(manifests::prune::handler),
-        )
-        .route(
-            "/manifests/{hash}",
-            get(manifests::get_by_id::handler).delete(manifests::delete_by_id::handler),
-        )
-        .route(
-            "/manifests/{hash}/datasets",
-            get(manifests::list_datasets::handler),
-        )
-        .route(
             "/providers",
             get(providers::get_all::handler).post(providers::create::handler),
         )
@@ -108,8 +73,8 @@ pub fn router(ctx: Ctx) -> Router<()> {
             "/providers/{name}",
             get(providers::get_by_id::handler).delete(providers::delete_by_id::handler),
         )
-        .route("/schema", post(schema::handler))
         .with_state(ctx)
+        .merge(amp_controller_admin_datasets::router().with_state(datasets_ctx))
         .merge(amp_controller_admin_system::router().with_state(system_ctx))
         .merge(amp_controller_admin_tables::router().with_state(tables_ctx))
 }
@@ -124,24 +89,24 @@ pub fn router(ctx: Ctx) -> Router<()> {
     ),
     paths(
         // Dataset endpoints
-        handlers::datasets::list_all::handler,
-        handlers::datasets::list_versions::handler,
+        amp_controller_admin_datasets::datasets::handlers::list_all::handler,
+        amp_controller_admin_datasets::datasets::handlers::list_versions::handler,
         handlers::datasets::list_jobs::handler,
-        handlers::datasets::get::handler,
-        handlers::datasets::get_manifest::handler,
-        handlers::datasets::register::handler,
+        amp_controller_admin_datasets::datasets::handlers::get::handler,
+        amp_controller_admin_datasets::datasets::handlers::get_manifest::handler,
+        amp_controller_admin_datasets::datasets::handlers::register::handler,
         handlers::datasets::deploy::handler,
-        handlers::datasets::restore::handler,
-        handlers::datasets::restore_table::handler,
-        handlers::datasets::delete::handler,
-        handlers::datasets::delete_version::handler,
+        amp_controller_admin_tables::datasets::handlers::restore::handler,
+        amp_controller_admin_tables::datasets::handlers::restore_table::handler,
+        amp_controller_admin_datasets::datasets::handlers::delete::handler,
+        amp_controller_admin_datasets::datasets::handlers::delete_version::handler,
         // Manifest endpoints
-        handlers::manifests::list_all::handler,
-        handlers::manifests::register::handler,
-        handlers::manifests::get_by_id::handler,
-        handlers::manifests::delete_by_id::handler,
-        handlers::manifests::list_datasets::handler,
-        handlers::manifests::prune::handler,
+        amp_controller_admin_datasets::manifests::handlers::list_all::handler,
+        amp_controller_admin_datasets::manifests::handlers::register::handler,
+        amp_controller_admin_datasets::manifests::handlers::get_by_id::handler,
+        amp_controller_admin_datasets::manifests::handlers::delete_by_id::handler,
+        amp_controller_admin_datasets::manifests::handlers::list_datasets::handler,
+        amp_controller_admin_datasets::manifests::handlers::prune::handler,
         // Job endpoints
         handlers::jobs::get_all::handler,
         handlers::jobs::get_by_id::handler,
@@ -159,7 +124,7 @@ pub fn router(ctx: Ctx) -> Router<()> {
         // Files endpoints
         amp_controller_admin_tables::files::handlers::get_by_id::handler,
         // Schema endpoints
-        handlers::schema::handler,
+        amp_controller_admin_datasets::schema::handler,
         // Revision endpoints
         amp_controller_admin_tables::revisions::handlers::list::handler,
         amp_controller_admin_tables::revisions::handlers::restore::handler,
@@ -178,25 +143,25 @@ pub fn router(ctx: Ctx) -> Router<()> {
         // Common schemas
         handlers::error::ErrorResponse,
         // Manifest schemas
-        handlers::manifests::list_all::ManifestsResponse,
-        handlers::manifests::list_all::ManifestInfo,
-        handlers::manifests::register::RegisterManifestResponse,
-        handlers::manifests::list_datasets::ManifestDatasetsResponse,
-        handlers::manifests::list_datasets::Dataset,
-        handlers::manifests::prune::PruneResponse,
+        amp_controller_admin_datasets::manifests::handlers::list_all::ManifestsResponse,
+        amp_controller_admin_datasets::manifests::handlers::list_all::ManifestInfo,
+        amp_controller_admin_datasets::manifests::handlers::register::RegisterManifestResponse,
+        amp_controller_admin_datasets::manifests::handlers::list_datasets::ManifestDatasetsResponse,
+        amp_controller_admin_datasets::manifests::handlers::list_datasets::Dataset,
+        amp_controller_admin_datasets::manifests::handlers::prune::PruneResponse,
         // Dataset schemas
-        handlers::datasets::get::DatasetInfo,
-        handlers::datasets::list_all::DatasetsResponse,
-        handlers::datasets::list_all::DatasetSummary,
-        handlers::datasets::list_versions::VersionsResponse,
-        handlers::datasets::list_versions::VersionInfo,
-        handlers::datasets::register::RegisterRequest,
-        handlers::datasets::register::RegisterResponse,
+        amp_controller_admin_datasets::datasets::handlers::get::DatasetInfo,
+        amp_controller_admin_datasets::datasets::handlers::list_all::DatasetsResponse,
+        amp_controller_admin_datasets::datasets::handlers::list_all::DatasetSummary,
+        amp_controller_admin_datasets::datasets::handlers::list_versions::VersionsResponse,
+        amp_controller_admin_datasets::datasets::handlers::list_versions::VersionInfo,
+        amp_controller_admin_datasets::datasets::handlers::register::RegisterRequest,
+        amp_controller_admin_datasets::datasets::handlers::register::RegisterResponse,
         handlers::datasets::deploy::DeployRequest,
         handlers::datasets::deploy::DeployResponse,
-        handlers::datasets::restore::RestoreResponse,
-        handlers::datasets::restore::RestoredTableInfo,
-        handlers::datasets::restore_table::RestoreTablePayload,
+        amp_controller_admin_tables::datasets::handlers::restore::RestoreResponse,
+        amp_controller_admin_tables::datasets::handlers::restore::RestoredTableInfo,
+        amp_controller_admin_tables::datasets::handlers::restore_table::RestoreTablePayload,
         // Job schemas
         handlers::jobs::progress::JobProgressResponse,
         handlers::jobs::progress::TableProgress,
@@ -212,8 +177,8 @@ pub fn router(ctx: Ctx) -> Router<()> {
         // File schemas
         amp_controller_admin_tables::files::handlers::get_by_id::FileInfo,
         // Schema schemas
-        handlers::schema::SchemaRequest,
-        handlers::schema::SchemaResponse,
+        amp_controller_admin_datasets::schema::SchemaRequest,
+        amp_controller_admin_datasets::schema::SchemaResponse,
         // Revision schemas
         amp_controller_admin_tables::revisions::handlers::restore::RestoreResponse,
         amp_controller_admin_tables::revisions::handlers::activate::ActivationPayload,

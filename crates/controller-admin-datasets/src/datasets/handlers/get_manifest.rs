@@ -13,7 +13,7 @@ use serde_json::Value as JsonValue;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /datasets/{namespace}/{name}/versions/{revision}/manifest` endpoint

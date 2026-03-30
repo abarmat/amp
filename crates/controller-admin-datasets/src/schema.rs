@@ -29,11 +29,9 @@ use datasets_derived::{
 };
 
 use crate::{
+    common::{InterTableDepError, resolve_inter_table_order},
     ctx::Ctx,
-    handlers::{
-        common::{InterTableDepError, resolve_inter_table_order},
-        error::{ErrorResponse, IntoErrorResponse},
-    },
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `POST /schema` endpoint
@@ -106,9 +104,9 @@ use crate::{
         request_body = SchemaRequest,
         responses(
             (status = 200, description = "Successfully analyzed SQL query and returned schema", body = SchemaResponse),
-            (status = 400, description = "Client error: Invalid SQL, table references, or function syntax", body = crate::handlers::error::ErrorResponse),
-            (status = 404, description = "Dataset not found", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Server error: Dataset store, planning, or internal failures", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Client error: Invalid SQL, table references, or function syntax", body = ErrorResponse),
+            (status = 404, description = "Dataset not found", body = ErrorResponse),
+            (status = 500, description = "Server error: Dataset store, planning, or internal failures", body = ErrorResponse)
         )
     )
 )]

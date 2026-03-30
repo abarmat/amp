@@ -12,7 +12,7 @@ use serde_json::value::RawValue as JsonRawValue;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /manifests/{hash}` endpoint
@@ -56,9 +56,9 @@ use crate::{
         ),
         responses(
             (status = 200, description = "Successfully retrieved manifest JSON (schema varies by manifest kind)", body = ManifestResponse),
-            (status = 400, description = "Invalid manifest hash", body = crate::handlers::error::ErrorResponse),
-            (status = 404, description = "Manifest not found", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Manifest retrieval error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid manifest hash", body = ErrorResponse),
+            (status = 404, description = "Manifest not found", body = ErrorResponse),
+            (status = 500, description = "Manifest retrieval error", body = ErrorResponse)
         )
     )
 )]

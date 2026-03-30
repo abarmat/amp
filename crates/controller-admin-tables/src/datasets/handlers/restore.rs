@@ -16,10 +16,8 @@ use tokio::task::JoinHandle;
 
 use crate::{
     ctx::Ctx,
-    handlers::{
-        common::{RegisterRevisionFilesError, register_revision_files},
-        error::{ErrorResponse, IntoErrorResponse},
-    },
+    error::{ErrorResponse, IntoErrorResponse},
+    revisions::register_files::{RegisterRevisionFilesError, register_revision_files},
 };
 
 /// Handler for the `POST /datasets/{namespace}/{name}/versions/{revision}/restore` endpoint

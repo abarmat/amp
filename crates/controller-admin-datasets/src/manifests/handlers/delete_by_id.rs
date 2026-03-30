@@ -10,7 +10,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `DELETE /manifests/{hash}` endpoint
@@ -66,9 +66,9 @@ use crate::{
         ),
         responses(
             (status = 204, description = "Manifest successfully deleted (or already deleted)"),
-            (status = 400, description = "Invalid hash", body = crate::handlers::error::ErrorResponse),
-            (status = 409, description = "Manifest linked to datasets", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid hash", body = ErrorResponse),
+            (status = 409, description = "Manifest linked to datasets", body = ErrorResponse),
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

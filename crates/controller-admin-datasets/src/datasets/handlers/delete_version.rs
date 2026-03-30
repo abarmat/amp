@@ -8,7 +8,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `DELETE /datasets/{namespace}/{name}/versions/{version}` endpoint

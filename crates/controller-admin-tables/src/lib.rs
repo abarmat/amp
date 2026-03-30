@@ -1,15 +1,18 @@
-pub mod ctx;
-pub mod error;
-pub mod files;
-pub mod revisions;
-
 use axum::{
     Router,
     routing::{delete, get, post},
 };
-use ctx::Ctx;
-use files::handlers as file_handlers;
-use revisions::handlers as revision_handlers;
+
+pub mod ctx;
+pub mod datasets;
+pub mod error;
+pub mod files;
+pub mod revisions;
+
+use self::{
+    ctx::Ctx, datasets::handlers as dataset_handlers, files::handlers as file_handlers,
+    revisions::handlers as revision_handlers,
+};
 
 pub fn router() -> Router<Ctx> {
     Router::new()
@@ -42,4 +45,12 @@ pub fn router() -> Router<Ctx> {
             post(revision_handlers::deactivate::handler),
         )
         .route("/files/{file_id}", get(file_handlers::get_by_id::handler))
+        .route(
+            "/datasets/{namespace}/{name}/versions/{revision}/restore",
+            post(dataset_handlers::restore::handler),
+        )
+        .route(
+            "/datasets/{namespace}/{name}/versions/{revision}/tables/{table_name}/restore",
+            post(dataset_handlers::restore_table::handler),
+        )
 }

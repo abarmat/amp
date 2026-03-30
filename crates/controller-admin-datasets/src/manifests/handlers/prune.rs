@@ -7,7 +7,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `DELETE /manifests` endpoint
@@ -42,7 +42,7 @@ use crate::{
         operation_id = "manifests_prune",
         responses(
             (status = 200, description = "Orphaned manifests pruned successfully", body = PruneResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]
