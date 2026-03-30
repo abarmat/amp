@@ -29,11 +29,11 @@ name = "admin-api"
 version = "0.1.0"
 dependencies = [
  "amp-controller-admin-datasets",
+ "amp-controller-admin-providers",
  "amp-controller-admin-system",
  "amp-controller-admin-tables",
  "amp-data-store",
  "amp-datasets-registry",
- "amp-providers-common",
  "amp-providers-registry",
  "amp-worker-core",
  "amp-worker-datasets-derived",
@@ -49,7 +49,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
- "toml",
  "tracing",
  "utoipa",
  "worker",
@@ -994,6 +993,22 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tracing",
+ "utoipa",
+]
+
+[[package]]
+name = "amp-controller-admin-providers"
+version = "0.1.0"
+dependencies = [
+ "amp-providers-common",
+ "amp-providers-registry",
+ "axum",
+ "monitoring",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
  "tracing",
  "utoipa",
 ]

@@ -11,7 +11,7 @@ use monitoring::logging;
 use super::{convert, provider_info::ProviderInfo};
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `POST /providers` endpoint
@@ -50,8 +50,8 @@ use crate::{
         request_body = ProviderInfo,
         responses(
             (status = 201, description = "Provider created or updated successfully"),
-            (status = 400, description = "Invalid request body or provider configuration", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid request body or provider configuration", body = ErrorResponse),
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

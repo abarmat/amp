@@ -13,7 +13,7 @@ pub mod handlers;
 pub mod scheduler;
 
 use ctx::Ctx;
-use handlers::{datasets, jobs, providers};
+use handlers::{datasets, jobs};
 
 use crate::ctx::{RevisionGuardImpl, WorkerServiceImpl};
 
@@ -30,6 +30,9 @@ pub fn router(ctx: Ctx) -> Router<()> {
     };
     let system_ctx = amp_controller_admin_system::ctx::Ctx {
         worker_service: Arc::new(WorkerServiceImpl(ctx.scheduler.clone())),
+    };
+    let providers_ctx = amp_controller_admin_providers::ctx::Ctx {
+        providers_registry: ctx.providers_registry.clone(),
     };
     let datasets_ctx = amp_controller_admin_datasets::ctx::Ctx {
         metadata_db: ctx.metadata_db.clone(),
@@ -65,17 +68,10 @@ pub fn router(ctx: Ctx) -> Router<()> {
             "/jobs/{id}/events/{event_id}",
             get(jobs::event_by_id::handler),
         )
-        .route(
-            "/providers",
-            get(providers::get_all::handler).post(providers::create::handler),
-        )
-        .route(
-            "/providers/{name}",
-            get(providers::get_by_id::handler).delete(providers::delete_by_id::handler),
-        )
         .with_state(ctx)
         .merge(amp_controller_admin_datasets::router().with_state(datasets_ctx))
         .merge(amp_controller_admin_system::router().with_state(system_ctx))
+        .merge(amp_controller_admin_providers::router().with_state(providers_ctx))
         .merge(amp_controller_admin_tables::router().with_state(tables_ctx))
 }
 
@@ -117,10 +113,10 @@ pub fn router(ctx: Ctx) -> Router<()> {
         handlers::jobs::delete::handler,
         handlers::jobs::delete_by_id::handler,
         // Provider endpoints
-        handlers::providers::get_all::handler,
-        handlers::providers::get_by_id::handler,
-        handlers::providers::create::handler,
-        handlers::providers::delete_by_id::handler,
+        amp_controller_admin_providers::providers::handlers::get_all::handler,
+        amp_controller_admin_providers::providers::handlers::get_by_id::handler,
+        amp_controller_admin_providers::providers::handlers::create::handler,
+        amp_controller_admin_providers::providers::handlers::delete_by_id::handler,
         // Files endpoints
         amp_controller_admin_tables::files::handlers::get_by_id::handler,
         // Schema endpoints
@@ -172,8 +168,8 @@ pub fn router(ctx: Ctx) -> Router<()> {
         handlers::jobs::get_all::JobsResponse,
         handlers::jobs::delete::JobStatusFilter,
         // Provider schemas
-        handlers::providers::provider_info::ProviderInfo,
-        handlers::providers::get_all::ProvidersResponse,
+        amp_controller_admin_providers::providers::handlers::provider_info::ProviderInfo,
+        amp_controller_admin_providers::providers::handlers::get_all::ProvidersResponse,
         // File schemas
         amp_controller_admin_tables::files::handlers::get_by_id::FileInfo,
         // Schema schemas

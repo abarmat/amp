@@ -5,15 +5,15 @@ license-file.workspace = true
 edition.workspace = true
 
 [features]
-utoipa = ["dep:utoipa", "amp-controller-admin-datasets/utoipa", "amp-controller-admin-system/utoipa", "amp-controller-admin-tables/utoipa"]
+utoipa = ["dep:utoipa", "amp-controller-admin-datasets/utoipa", "amp-controller-admin-providers/utoipa", "amp-controller-admin-system/utoipa", "amp-controller-admin-tables/utoipa"]
 
 [dependencies]
 amp-controller-admin-datasets = { path = "../../controller-admin-datasets" }
+amp-controller-admin-providers = { path = "../../controller-admin-providers" }
 amp-controller-admin-system = { path = "../../controller-admin-system" }
 amp-controller-admin-tables = { path = "../../controller-admin-tables" }
 amp-data-store = { path = "../../core/data-store" }
 amp-datasets-registry = { path = "../../core/datasets-registry" }
-amp-providers-common = { path = "../../core/providers-common" }
 amp-providers-registry = { path = "../../core/providers-registry" }
 amp-worker-core = { path = "../../core/worker-core" }
 amp-worker-datasets-derived = { path = "../../core/worker-datasets-derived" }
@@ -29,7 +29,6 @@ monitoring = { path = "../../core/monitoring" }
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true
-toml.workspace = true
 tracing.workspace = true
 utoipa = { version = "5.4.0", features = ["axum_extras"], optional = true }
 worker = { path = "../worker" }

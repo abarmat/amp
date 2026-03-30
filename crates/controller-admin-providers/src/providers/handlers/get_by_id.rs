@@ -11,7 +11,7 @@ use monitoring::logging;
 use super::provider_info::ProviderInfo;
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `GET /providers/{name}` endpoint
@@ -60,9 +60,9 @@ use crate::{
         ),
         responses(
             (status = 200, description = "Successfully retrieved provider information", body = ProviderInfo),
-            (status = 400, description = "Invalid provider name", body = crate::handlers::error::ErrorResponse),
-            (status = 404, description = "Provider not found", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid provider name", body = ErrorResponse),
+            (status = 404, description = "Provider not found", body = ErrorResponse),
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]

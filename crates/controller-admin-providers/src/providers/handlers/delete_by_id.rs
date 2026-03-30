@@ -10,7 +10,7 @@ use monitoring::logging;
 
 use crate::{
     ctx::Ctx,
-    handlers::error::{ErrorResponse, IntoErrorResponse},
+    error::{ErrorResponse, IntoErrorResponse},
 };
 
 /// Handler for the `DELETE /providers/{name}` endpoint
@@ -53,8 +53,8 @@ use crate::{
         ),
         responses(
             (status = 204, description = "Provider successfully deleted (or did not exist)"),
-            (status = 400, description = "Invalid provider name", body = crate::handlers::error::ErrorResponse),
-            (status = 500, description = "Internal server error", body = crate::handlers::error::ErrorResponse)
+            (status = 400, description = "Invalid provider name", body = ErrorResponse),
+            (status = 500, description = "Internal server error", body = ErrorResponse)
         )
     )
 )]
