@@ -124,4 +124,4 @@ Check the release notes for each version for specific upgrade instructions and b
 
 - [Operational Modes](modes.md) - Understanding deployment patterns
 - [Configuration Guide](config.md) - Detailed configuration options
-- [Deployment Guide](deployment.md) - Production deployment patterns
+- [Operational Modes](modes.md) - Deployment patterns and operational modes

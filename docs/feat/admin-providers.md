@@ -49,26 +49,26 @@ Add a new blockchain data source to enable dataset extraction.
 
 ```bash
 # EVM RPC provider
-ampctl provider register my-mainnet-rpc \
+ampctl provider register my_mainnet_rpc \
   --kind evm-rpc \
   --network mainnet \
   --url '${ETH_MAINNET_RPC_URL}'
 
 # Firehose provider
-ampctl provider register my-firehose \
+ampctl provider register my_firehose \
   --kind firehose \
   --network mainnet \
   --url '${FIREHOSE_URL}' \
   --token '${FIREHOSE_TOKEN}'
 
 # Anvil (local development - IPC)
-ampctl provider register anvil-ipc \
+ampctl provider register anvil_ipc \
   --kind evm-rpc \
   --network anvil \
   --url 'ipc:///tmp/anvil.ipc'
 
 # Anvil (local development - HTTP)
-ampctl provider register anvil-local \
+ampctl provider register anvil_local \
   --kind evm-rpc \
   --network anvil \
   --url 'http://localhost:8545'

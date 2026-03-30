@@ -128,7 +128,7 @@ For detailed configuration, troubleshooting, architecture details, and advanced 
 - [Glossary](glossary.md) - Key terminology and architecture component definitions
 - [Operational Modes](modes.md) - Detailed guide to `ampd` operational modes and deployment patterns
 - [Configuration Guide](config.md) - Configuration options for all executables
-- [User-Defined Functions](udfs.md) - Writing SQL queries with custom UDFs
+- [User-Defined Functions](feat/udf.md) - Writing SQL queries with custom UDFs
 - [Upgrading Guide](upgrading.md) - Upgrading Amp between versions
 - [Telemetry Guide](telemetry.md) - Observability and monitoring
 - [Ampsync README](../crates/bin/ampsync/README.md) - Detailed ampsync documentation

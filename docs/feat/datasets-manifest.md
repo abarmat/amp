@@ -10,7 +10,7 @@ components: "crate:datasets-common,crate:datasets-registry"
 
 ## Summary
 
-A dataset manifest is a JSON document that fully describes a dataset — its kind, tables, Arrow schemas, and kind-specific configuration. Manifests are content-addressable: a SHA-256 hash of the canonical JSON produces the [hash reference](../glossary.md#hash-reference) used to identify each [revision](../glossary.md#revision). All dataset kinds share the same manifest envelope with a `kind` discriminator field.
+A dataset manifest is a JSON document that fully describes a dataset — its kind, tables, Arrow schemas, and kind-specific configuration. Manifests are content-addressable: a SHA-256 hash of the canonical JSON produces the hash reference used to identify each [revision](../glossary.md#dataset-version). All dataset kinds share the same manifest envelope with a `kind` discriminator field.
 
 ## Table of Contents
 

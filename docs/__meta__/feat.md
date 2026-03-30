@@ -354,7 +354,7 @@ Avoid re-defining common terms. Instead, embed inline links to the [Glossary](..
 **Inline term linking:**
 
 ```markdown
-The [dataset](../glossary.md#dataset) contains multiple [revisions](../glossary.md#revision) organized by [namespace](../glossary.md#namespace).
+The [dataset](../glossary.md#dataset) contains multiple [revisions](../glossary.md#dataset-version) organized by [namespace](../glossary.md#dataset-namespace).
 ```
 
 This keeps feature docs focused and ensures consistent terminology across all documentation.
@@ -467,7 +467,7 @@ Omit this section for simple features where usage is self-explanatory.}}
 |----------|--------|-------------|
 | `/path` | POST | What this endpoint does |
 
-For request/response schemas, see [OpenAPI spec](../schemas/openapi/spec.json):
+For request/response schemas, see [OpenAPI spec](../schemas/openapi/admin.spec.json):
 
 ```bash
 jq '.paths["/path"]' docs/schemas/openapi/spec.json

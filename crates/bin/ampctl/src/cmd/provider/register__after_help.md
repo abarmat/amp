@@ -15,13 +15,13 @@ Provider Configuration Format:
 
 Examples:
     # Register from local file
-    ampctl provider register mainnet-rpc ./providers/mainnet.toml
+    ampctl provider register mainnet_rpc ./providers/mainnet.toml
 
     # Register from S3
-    ampctl provider register polygon-rpc s3://my-bucket/providers/polygon.toml
+    ampctl provider register polygon_rpc s3://my-bucket/providers/polygon.toml
 
     # Register from GCS with custom admin URL
-    ampctl provider register --admin-url http://localhost:8080 goerli-rpc gs://providers/goerli.toml
+    ampctl provider register --admin-url http://localhost:8080 goerli_rpc gs://providers/goerli.toml
 
     # Register from Azure
-    ampctl provider register arbitrum-rpc az://container/providers/arbitrum.toml
+    ampctl provider register arbitrum_rpc az://container/providers/arbitrum.toml

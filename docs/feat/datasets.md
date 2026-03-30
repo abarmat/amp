@@ -19,7 +19,7 @@ Datasets are the core data abstraction in Amp, describing the shape and structur
 
 ## Key Concepts
 
-- **Dataset**: A named, versioned collection of tables with an explicit Arrow schema, identified by a content-addressable [hash reference](../glossary.md#hash-reference)
+- **Dataset**: A named, versioned collection of tables with an explicit Arrow schema, identified by a content-addressable hash reference.
 - **Manifest**: A JSON document that fully describes a dataset — its kind, tables, schemas, and kind-specific configuration
 - **Kind**: The dataset type that determines the schema structure and data source expectations (`evm-rpc`, `firehose`, `solana`, `manifest`, `static`)
 - **Table**: A named set of rows with a fixed Arrow schema. Raw tables include a reserved `_block_num` column for block ordering

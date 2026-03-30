@@ -195,10 +195,10 @@ Additional fields vary by provider kind. The provider name is derived from the f
 
 ## Sample Provider Configurations
 
-Complete sample configuration files for each provider kind are available in the [docs/schemas/providers/](providers/) directory:
+Complete configuration schemas for each provider kind are available in the [docs/schemas/providers/](schemas/providers/) directory:
 
-- **[evm-rpc.sample.toml](providers/evm-rpc.sample.toml)** - Configuration for Ethereum-compatible JSON-RPC endpoints. Includes fields for URL (HTTP/WebSocket/IPC), concurrent request limits, RPC batching, rate limiting, and receipt fetching options.
+- **[evm-rpc.spec.json](schemas/providers/evm-rpc.spec.json)** - Configuration schema for Ethereum-compatible JSON-RPC endpoints. Includes fields for URL (HTTP/WebSocket/IPC), concurrent request limits, RPC batching, rate limiting, and receipt fetching options.
 
-- **[firehose.sample.toml](providers/firehose.sample.toml)** - Configuration for StreamingFast Firehose gRPC endpoints. Includes fields for gRPC URL and authentication token.
+- **[firehose.spec.json](schemas/providers/firehose.spec.json)** - Configuration schema for StreamingFast Firehose gRPC endpoints. Includes fields for gRPC URL and authentication token.
 
-These sample files document all available configuration fields for each provider kind, including both required and optional parameters with their default values.
+These schema files document all available configuration fields for each provider kind, including both required and optional parameters with their default values.

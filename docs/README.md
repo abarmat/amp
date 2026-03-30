@@ -36,7 +36,7 @@ Process for upgrading Amp between versions:
 
 ### Data Sources & Schemas
 
-#### [Dataset Definition Schemas](dataset-def-schemas/README.md)
+#### [Dataset Definition Schemas](schemas/manifest/README.md)
 
 JSON schemas for defining datasets:
 
@@ -47,10 +47,11 @@ JSON schemas for defining datasets:
 
 #### Dataset Schema Documentation
 
-- **[EVM RPC Schema](schemas/evm-rpc.md)** - Schema for Ethereum-compatible JSON-RPC data sources
-- **[Firehose EVM Schema](schemas/firehose-evm.md)** - Schema for StreamingFast Firehose protocol data
+- **[EVM RPC Schema](schemas/tables/evm-rpc.md)** - Schema for Ethereum-compatible JSON-RPC data sources
+- **[Firehose EVM Schema](schemas/tables/firehose-evm.md)** - Schema for StreamingFast Firehose protocol data
+- **[Solana Schema](schemas/tables/solana.md)** - Schema for Solana blockchain data sources
 
-#### [User-Defined Functions (UDFs)](udfs.md)
+#### [User-Defined Functions (UDFs)](feat/udf.md)
 
 Custom SQL functions available in Amp queries:
 

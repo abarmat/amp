@@ -789,6 +789,5 @@ For production deployments requiring authentication:
 
 - [Configuration Guide](config.md) - Detailed configuration options
 - [Upgrading Guide](upgrading.md) - Upgrading Amp between versions
-- [Dataset Definitions](datasets.md) - How to define datasets
-- [Query Guide](queries.md) - Writing SQL queries with custom UDFs
-- [Deployment Guide](deployment.md) - Production deployment patterns
+- [Dataset Definitions](feat/datasets.md) - How to define datasets
+- [Query Guide](feat/udf.md) - Writing SQL queries with custom UDFs

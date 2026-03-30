@@ -93,7 +93,7 @@ For EVM RPC raw datasets, Amp extracts data into three tables: blocks, logs, and
 
 ### Segment Chain Verification
 
-Amp stores data in Parquet files called [segments](../glossary.md#segment), where each segment covers a contiguous range of blocks. Per-block verification ensures individual block integrity, but segments must also form a coherent chain.
+Amp stores data in Parquet files called `segments`, where each segment covers a contiguous range of blocks. Per-block verification ensures individual block integrity, but segments must also form a coherent chain.
 
 Every EVM block contains a parent block hash, linking blocks into a chain. Segments are similarly linked using the block hash and parent hash of their boundary blocks. This is stronger than checking block numbers alone, which cannot handle chain reorganizations where two blocks may have the same number but different contents.
 

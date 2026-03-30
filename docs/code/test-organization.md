@@ -136,7 +136,7 @@ fn parse_worker_id_from_string_succeeds() {
 }
 ```
 
-See [test-functions.md](test-functions.md#-complete-examples) for full examples with Given-When-Then structure.
+See [test-functions.md](test-functions.md#-complete-example) for full examples with Given-When-Then structure.
 
 **For file placement and module structure details**, see [test-files.md](test-files.md).
 
