@@ -1,21 +1,15 @@
-//! Amp Admin API
+//! Amp Admin API router and OpenAPI specification
 
 use std::sync::Arc;
 
 use axum::Router;
 
-pub mod build_info;
-pub mod ctx;
-pub mod handlers;
-
-use ctx::Ctx;
-
-use crate::ctx::{RevisionGuardImpl, WorkerServiceImpl};
+use crate::ctx::{Ctx, RevisionGuardImpl, WorkerServiceImpl};
 
 /// Create the admin API router with all routes registered
 ///
 /// Returns a router configured with all admin API endpoints.
-pub fn router(ctx: Ctx) -> Router<()> {
+pub(crate) fn router(ctx: Ctx) -> Router<()> {
     let tables_ctx = amp_controller_admin_tables::ctx::Ctx {
         metadata_db: ctx.metadata_db.clone(),
         datasets_registry: ctx.datasets_registry.clone(),
@@ -114,7 +108,7 @@ pub fn router(ctx: Ctx) -> Router<()> {
     ),
     components(schemas(
         // Common schemas
-        handlers::error::ErrorResponse,
+        crate::handlers::error::ErrorResponse,
         // Manifest schemas
         amp_controller_admin_datasets::manifests::handlers::list_all::ManifestsResponse,
         amp_controller_admin_datasets::manifests::handlers::list_all::ManifestInfo,

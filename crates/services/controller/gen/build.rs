@@ -6,7 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         let out_dir = std::env::var("OUT_DIR")?;
-        let spec = admin_api::generate_openapi_spec();
+        let spec = controller::generate_openapi_spec();
         let spec_json = serde_json::to_string_pretty(&spec)?;
         let spec_path = format!("{out_dir}/openapi.spec.json");
         std::fs::write(&spec_path, spec_json)?;

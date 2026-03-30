@@ -1,5 +1,5 @@
 [package]
-name = "admin-api-gen"
+name = "amp-controller-admin-api-gen"
 edition.workspace = true
 version.workspace = true
 license-file.workspace = true
@@ -8,7 +8,7 @@ publish = false
 # Schema generation dependencies (see README.md "OpenAPI Schema Generation" section)
 # These dependencies are only included when the gen_openapi_spec cfg flag is enabled
 [target.'cfg(gen_openapi_spec)'.build-dependencies]
-admin-api = { path = "..", features = ["utoipa"] }
+controller = { path = "..", features = ["utoipa"] }
 serde_json.workspace = true
 
 [lints.rust]

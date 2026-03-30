@@ -261,7 +261,7 @@ gen:
     echo "  {{GEN_PROVIDER_SCHEMAS_OUTDIR}}/static.spec.json"
 
     # Admin API (OpenAPI spec)
-    cp -f $(ls -t target/debug/build/admin-api-gen-*/out/openapi.spec.json | head -1) {{GEN_OPENAPI_SCHEMAS_OUTDIR}}/admin.spec.json
+    cp -f $(ls -t target/debug/build/amp-controller-admin-api-gen-*/out/openapi.spec.json | head -1) {{GEN_OPENAPI_SCHEMAS_OUTDIR}}/admin.spec.json
     echo "  {{GEN_OPENAPI_SCHEMAS_OUTDIR}}/admin.spec.json"
 
 ### ampd Config
@@ -410,9 +410,9 @@ gen-static-provider-schema DEST_DIR=GEN_PROVIDER_SCHEMAS_OUTDIR:
 # Generate the admin API OpenAPI specification
 [group: 'codegen']
 gen-admin-api-openapi-spec DEST_DIR=GEN_OPENAPI_SCHEMAS_OUTDIR:
-    RUSTFLAGS="--cfg gen_openapi_spec" cargo check -p admin-api-gen
+    RUSTFLAGS="--cfg gen_openapi_spec" cargo check -p amp-controller-admin-api-gen
     @mkdir -p {{DEST_DIR}}
-    @cp -f $(ls -t target/debug/build/admin-api-gen-*/out/openapi.spec.json | head -1) {{DEST_DIR}}/admin.spec.json
+    @cp -f $(ls -t target/debug/build/amp-controller-admin-api-gen-*/out/openapi.spec.json | head -1) {{DEST_DIR}}/admin.spec.json
     @echo "Schema generated and copied to {{DEST_DIR}}/admin.spec.json"
 
 ### Worker

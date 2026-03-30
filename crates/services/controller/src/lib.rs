@@ -2,8 +2,13 @@
 //!
 //! The controller service provides the admin API for managing Amp operations.
 
+pub mod build_info;
+pub mod ctx;
+pub mod handlers;
+mod router;
 mod scheduler;
 pub mod service;
 
-// Re-export build_info to avoid code duplication
-pub use admin_api::build_info;
+#[cfg(feature = "utoipa")]
+pub use router::generate_openapi_spec;
+pub(crate) use router::router;

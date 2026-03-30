@@ -1,6 +1,5 @@
 use std::{future::Future, net::SocketAddr, sync::Arc, time::Duration};
 
-use admin_api::ctx::Ctx;
 use amp_data_store::DataStore;
 use amp_datasets_registry::DatasetsRegistry;
 use amp_providers_registry::ProvidersRegistry;
@@ -17,7 +16,7 @@ use opentelemetry_instrumentation_tower::HTTPMetricsLayerBuilder;
 use tokio::{net::TcpListener, time::MissedTickBehavior};
 use tower_http::cors::CorsLayer;
 
-use crate::{build_info::BuildInfo, scheduler::Scheduler};
+use crate::{build_info::BuildInfo, ctx::Ctx, scheduler::Scheduler};
 
 /// Reconciliation interval for failed job retries
 ///
@@ -61,7 +60,7 @@ pub async fn new(
     // Create controller router with health check endpoint
     let mut app = Router::new()
         .route("/healthz", get(|| async { StatusCode::OK }))
-        .merge(admin_api::router(ctx));
+        .merge(crate::router(ctx));
 
     // Add OpenTelemetry HTTP metrics middleware if meter is provided
     if let Some(meter) = meter {
