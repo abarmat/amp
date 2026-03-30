@@ -122,7 +122,7 @@ pub async fn run(
     let isolate_pool = IsolatePool::new();
 
     let datasets_cache = DatasetsCache::new(datasets_registry.clone());
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone());
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone(), meter.as_ref());
 
     // Spawn controller (Admin API) if enabled
     let controller_fut: ControllerFuture = if admin_server {

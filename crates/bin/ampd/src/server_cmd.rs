@@ -62,7 +62,7 @@ pub async fn run(
     let isolate_pool = IsolatePool::new();
 
     let datasets_cache = DatasetsCache::new(datasets_registry);
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry);
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry, meter.as_ref());
 
     let server_config = config_from_common(&config);
 

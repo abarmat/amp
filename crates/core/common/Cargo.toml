@@ -9,6 +9,7 @@ alloy.workspace = true
 amp-data-store = { path = "../data-store" }
 amp-datasets-registry = { path = "../datasets-registry" }
 amp-parquet = { path = "../parquet" }
+amp-providers-common = { path = "../providers-common" }
 amp-providers-registry = { path = "../providers-registry" }
 arrow.workspace = true
 async-stream.workspace = true
@@ -27,6 +28,7 @@ futures.workspace = true
 itertools.workspace = true
 js-runtime = { path = "../js-runtime" }
 metadata-db = { path = "../metadata-db" }
+monitoring = { path = "../monitoring" }
 object_store.workspace = true
 parking_lot = "0.12.4"
 rand.workspace = true

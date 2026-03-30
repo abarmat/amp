@@ -62,7 +62,7 @@ pub async fn run(
     let isolate_pool = IsolatePool::new();
 
     let datasets_cache = DatasetsCache::new(datasets_registry.clone());
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone());
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone(), meter.as_ref());
 
     // Convert common config to worker-specific config
     let worker_config = config_from_common(&config);

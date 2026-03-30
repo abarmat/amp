@@ -60,7 +60,7 @@ pub async fn run(
         (datasets_registry, providers_registry)
     };
     let datasets_cache = DatasetsCache::new(datasets_registry.clone());
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone());
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone(), meter.as_ref());
 
     let (addr, server) = controller::service::new(
         build_info,

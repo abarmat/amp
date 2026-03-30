@@ -195,7 +195,7 @@ async fn main() {
                 let datasets_registry =
                     DatasetsRegistry::new(sysdb.conn_pool().clone(), dataset_manifests_store);
                 let datasets_cache = DatasetsCache::new(datasets_registry.clone());
-                let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone());
+                let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone(), None);
                 (
                     datasets_cache,
                     ethcall_udfs_cache,

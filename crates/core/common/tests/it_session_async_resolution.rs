@@ -394,7 +394,7 @@ async fn exec_statement_to_plan_with_qualified_function_uses_async_pre_resolutio
         ProviderConfigsStore::new(Arc::new(InMemory::new()) as Arc<dyn ObjectStore>);
     let providers_registry = ProvidersRegistry::new(provider_configs);
     let datasets_cache = DatasetsCache::new(datasets_registry);
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry);
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry, None);
 
     let runtime_env: Arc<RuntimeEnv> = Default::default();
     let exec_env = ExecEnv {
@@ -496,7 +496,7 @@ async fn exec_statement_to_plan_with_overlapping_async_and_physical_tables_succe
         ProviderConfigsStore::new(Arc::new(InMemory::new()) as Arc<dyn ObjectStore>);
     let providers_registry = ProvidersRegistry::new(provider_configs);
     let datasets_cache = DatasetsCache::new(datasets_registry);
-    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry);
+    let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry, None);
 
     let runtime_env: Arc<RuntimeEnv> = Default::default();
     let exec_env = ExecEnv {

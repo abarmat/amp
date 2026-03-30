@@ -1,4 +1,4 @@
-use std::{any::Any, str::FromStr};
+use std::{any::Any, str::FromStr, sync::Arc, time::Instant};
 
 use alloy::{
     eips::BlockNumberOrTag,
@@ -7,8 +7,9 @@ use alloy::{
     primitives::{Address, Bytes, TxKind},
     providers::Provider,
     rpc::{json_rpc::ErrorPayload, types::TransactionInput},
-    transports::RpcError,
+    transports::{RpcError, TransportErrorKind},
 };
+use amp_providers_common::provider_name::ProviderName;
 use async_trait::async_trait;
 use datafusion::{
     arrow::{
@@ -25,9 +26,13 @@ use datafusion::{
         async_udf::AsyncScalarUDFImpl,
     },
 };
+use datasets_common::network_id::NetworkId;
 use itertools::izip;
 
+use super::metrics::EthCallMetrics;
 use crate::plan;
+
+pub(crate) const MAX_RETRY_ATTEMPTS: u32 = 3;
 
 type TransactionRequest = <Ethereum as alloy::network::Network>::TransactionRequest;
 
@@ -74,13 +79,20 @@ type TransactionRequest = <Ethereum as alloy::network::Network>::TransactionRequ
 pub struct EthCall {
     name: String,
     client: alloy::providers::RootProvider<AnyNetwork>,
+    provider_name: ProviderName,
+    network: NetworkId,
+    metrics: Option<Arc<EthCallMetrics>>,
     signature: Signature,
     fields: Fields,
 }
 
 impl PartialEq for EthCall {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.signature == other.signature && self.fields == other.fields
+        self.name == other.name
+            && self.provider_name == other.provider_name
+            && self.network == other.network
+            && self.signature == other.signature
+            && self.fields == other.fields
     }
 }
 
@@ -89,20 +101,31 @@ impl Eq for EthCall {}
 impl std::hash::Hash for EthCall {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+        self.provider_name.hash(state);
+        self.network.hash(state);
         self.signature.hash(state);
         self.fields.hash(state);
     }
 }
 
 impl EthCall {
-    /// Creates an `EthCall` UDF with the given name and RPC client.
+    /// Creates an `EthCall` UDF with the given name, RPC client, and observability context.
     ///
     /// The name must match the flat lookup key that DataFusion's planner constructs
     /// for the function reference, e.g., `rpc.mainnet.eth_call`.
-    pub fn new(name: String, client: alloy::providers::RootProvider<AnyNetwork>) -> Self {
+    pub fn new(
+        name: String,
+        client: alloy::providers::RootProvider<AnyNetwork>,
+        provider_name: ProviderName,
+        network: NetworkId,
+        metrics: Option<Arc<EthCallMetrics>>,
+    ) -> Self {
         EthCall {
             name,
             client,
+            provider_name,
+            network,
+            metrics,
             signature: Signature {
                 type_signature: TypeSignature::Any(4),
                 volatility: Volatility::Volatile,
@@ -156,6 +179,9 @@ impl AsyncScalarUDFImpl for EthCall {
         let name = self.name().to_string();
         let client = self.client.clone();
         let fields = self.fields.clone();
+        let network_label = self.network.as_str();
+        let provider_label = self.provider_name.as_str();
+
         // Decode the arguments.
         let args: Vec<_> = ColumnarValue::values_to_arrays(&args.args)?;
         let [from, to, input_data, block] = args.as_slice() else {
@@ -248,8 +274,37 @@ impl AsyncScalarUDFImpl for EthCall {
             let Some(to) = to else {
                 return plan_err!("to address is NULL");
             };
-            let result = eth_call_retry(
-                &client,
+
+            let block_selector = block.to_string();
+            let calldata_len = input_data.map(|d| d.len()).unwrap_or(0);
+            let to_hex = hex::encode(to);
+            let from_hex = from.map(hex::encode);
+
+            let span = tracing::info_span!(
+                "eth_call",
+                network = %network_label,
+                provider = %provider_label,
+                udf_name = %name,
+                block_selector_type = block_selector_type(&block),
+                block_selector_value = %block_selector,
+                to = %to_hex,
+                calldata_len,
+                attempts_total = tracing::field::Empty,
+                outcome = tracing::field::Empty,
+                error_class = tracing::field::Empty,
+            );
+
+            if let Some(metrics) = &self.metrics {
+                metrics.record_request(network_label, provider_label);
+            }
+
+            let invocation_start = Instant::now();
+
+            let retry_result = eth_call_with_retry(
+                |req, blk| {
+                    let c = client.clone();
+                    async move { classify_rpc_result(c.call(req.into()).block(blk.into()).await) }
+                },
                 block,
                 TransactionRequest {
                     // `eth_call` only requires the following fields
@@ -276,14 +331,39 @@ impl AsyncScalarUDFImpl for EthCall {
                         input: input_data.map(Bytes::copy_from_slice),
                         data: None,
                     },
-                    // `eth_call` does not require any other fields.
                     ..Default::default()
                 },
+                network_label,
+                provider_label,
+                self.metrics.as_deref(),
             )
             .await;
-            // Build the response row.
-            match result {
+
+            let latency_ms = invocation_start.elapsed().as_secs_f64() * 1000.0;
+
+            if let Some(metrics) = &self.metrics {
+                metrics.record_latency(latency_ms, network_label, provider_label);
+            }
+
+            span.record("attempts_total", retry_result.attempts);
+
+            // Build the response row, record metrics, and log — single match.
+            match retry_result.result {
                 Ok(bytes) => {
+                    span.record("outcome", "ok");
+                    tracing::debug!(
+                        network = %network_label,
+                        provider = %provider_label,
+                        udf_name = %name,
+                        block_selector = %block_selector,
+                        to = %to_hex,
+                        from = ?from_hex,
+                        calldata_len_bytes = calldata_len,
+                        success = true,
+                        attempts_total = retry_result.attempts,
+                        latency_ms,
+                        "eth_call invocation completed"
+                    );
                     result_builder
                         .field_builder::<BinaryBuilder>(0)
                         .unwrap()
@@ -294,51 +374,89 @@ impl AsyncScalarUDFImpl for EthCall {
                         .append_null();
                     result_builder.append(true);
                 }
-                Err(EthCallRetryError::RpcError(resp)) => {
-                    match resp.data {
-                        Some(data) => {
-                            match hex::decode(
-                                data.get().trim_start_matches('"').trim_end_matches('"'),
-                            ) {
-                                Ok(data) => result_builder
+                Err(err) => {
+                    let error_class = err.error_class();
+
+                    if let Some(metrics) = &self.metrics {
+                        metrics.record_retry_error(network_label, provider_label, &err);
+                    }
+
+                    span.record("outcome", "error");
+                    span.record("error_class", error_class);
+
+                    let (rpc_error_code, message) = match &err {
+                        EthCallRetryError::RpcError(resp) => {
+                            (Some(resp.code), resp.message.to_string())
+                        }
+                        EthCallRetryError::RetriesFailed => {
+                            (None, "unexpected rpc error".to_string())
+                        }
+                    };
+                    let truncated_message = message.get(..500).unwrap_or(&message);
+                    tracing::debug!(
+                        network = %network_label,
+                        provider = %provider_label,
+                        udf_name = %name,
+                        block_selector = %block_selector,
+                        to = %to_hex,
+                        from = ?from_hex,
+                        calldata_len_bytes = calldata_len,
+                        success = false,
+                        attempts_total = retry_result.attempts,
+                        latency_ms,
+                        error_class,
+                        rpc_error_code,
+                        error_message = truncated_message,
+                        "eth_call invocation completed"
+                    );
+
+                    match err {
+                        EthCallRetryError::RpcError(resp) => {
+                            match resp.data {
+                                Some(data) => {
+                                    match hex::decode(
+                                        data.get().trim_start_matches('"').trim_end_matches('"'),
+                                    ) {
+                                        Ok(data) => result_builder
+                                            .field_builder::<BinaryBuilder>(0)
+                                            .unwrap()
+                                            .append_value(data),
+                                        Err(_) => {
+                                            result_builder
+                                                .field_builder::<BinaryBuilder>(0)
+                                                .unwrap()
+                                                .append_null();
+                                        }
+                                    }
+                                }
+                                None => result_builder
                                     .field_builder::<BinaryBuilder>(0)
                                     .unwrap()
-                                    .append_value(data),
-                                Err(_) => {
-                                    result_builder
-                                        .field_builder::<BinaryBuilder>(0)
-                                        .unwrap()
-                                        .append_null();
-                                }
+                                    .append_null(),
+                            }
+                            if !resp.message.is_empty() {
+                                result_builder
+                                    .field_builder::<StringBuilder>(1)
+                                    .unwrap()
+                                    .append_value(resp.message)
+                            } else {
+                                result_builder
+                                    .field_builder::<StringBuilder>(1)
+                                    .unwrap()
+                                    .append_null()
                             }
                         }
-                        None => result_builder
-                            .field_builder::<BinaryBuilder>(0)
-                            .unwrap()
-                            .append_null(),
+                        EthCallRetryError::RetriesFailed => {
+                            result_builder
+                                .field_builder::<BinaryBuilder>(0)
+                                .unwrap()
+                                .append_null();
+                            result_builder
+                                .field_builder::<StringBuilder>(1)
+                                .unwrap()
+                                .append_value("unexpected rpc error");
+                        }
                     }
-                    if !resp.message.is_empty() {
-                        result_builder
-                            .field_builder::<StringBuilder>(1)
-                            .unwrap()
-                            .append_value(resp.message)
-                    } else {
-                        result_builder
-                            .field_builder::<StringBuilder>(1)
-                            .unwrap()
-                            .append_null()
-                    }
-                    result_builder.append(true);
-                }
-                Err(EthCallRetryError::RetriesFailed) => {
-                    result_builder
-                        .field_builder::<BinaryBuilder>(0)
-                        .unwrap()
-                        .append_null();
-                    result_builder
-                        .field_builder::<StringBuilder>(1)
-                        .unwrap()
-                        .append_value("unexpected rpc error");
                     result_builder.append(true);
                 }
             }
@@ -349,30 +467,141 @@ impl AsyncScalarUDFImpl for EthCall {
     }
 }
 
-async fn eth_call_retry(
-    client: &alloy::providers::RootProvider<AnyNetwork>,
+// ---------------------------------------------------------------------------
+// Retry logic
+// ---------------------------------------------------------------------------
+
+pub(crate) struct EthCallRetryResult {
+    pub(crate) result: Result<Bytes, EthCallRetryError>,
+    pub(crate) attempts: u32,
+}
+
+/// Terminal error from an eth_call invocation after the retry loop completes.
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum EthCallRetryError {
+    /// Non-retryable JSON-RPC error (codes 3 or -32000).
+    #[error("non-retryable RPC error")]
+    RpcError(ErrorPayload),
+    /// All retry attempts exhausted without a successful response.
+    #[error("eth_call retries exhausted after {MAX_RETRY_ATTEMPTS} attempts")]
+    RetriesFailed,
+}
+
+impl EthCallRetryError {
+    /// Returns the metric/log label for this error category.
+    pub(crate) fn error_class(&self) -> &'static str {
+        match self {
+            Self::RpcError(_) => "rpc_error_non_retryable",
+            Self::RetriesFailed => "rpc_error_retry_exhausted",
+        }
+    }
+}
+
+/// Outcome of a single RPC call attempt, abstracting over transport details.
+///
+/// Used to decouple retry logic from the concrete alloy transport so that
+/// unit tests can supply scripted responses.
+pub(crate) enum RpcCallOutcome {
+    Ok(Bytes),
+    NonRetryableError(ErrorPayload),
+    RetryableError(RpcError<TransportErrorKind>),
+}
+
+/// Execute an eth_call with retries, recording per-attempt metrics and logs.
+///
+/// `call_fn` is invoked for each attempt. In production it wraps
+/// `client.call(...)`. In tests it returns scripted [`RpcCallOutcome`]s.
+pub(crate) async fn eth_call_with_retry<F, Fut>(
+    call_fn: F,
     block: BlockNumberOrTag,
     req: TransactionRequest,
-) -> Result<Bytes, EthCallRetryError> {
-    for _ in 0..3 {
-        let result = client.call(req.clone().into()).block(block.into()).await;
-        match result {
-            Ok(bytes) => {
-                return Ok(bytes);
+    network: &str,
+    provider: &str,
+    metrics: Option<&EthCallMetrics>,
+) -> EthCallRetryResult
+where
+    F: Fn(TransactionRequest, BlockNumberOrTag) -> Fut,
+    Fut: std::future::Future<Output = RpcCallOutcome>,
+{
+    for attempt in 1..=MAX_RETRY_ATTEMPTS {
+        let attempt_start = Instant::now();
+        let outcome = call_fn(req.clone(), block).await;
+        let attempt_latency_ms = attempt_start.elapsed().as_secs_f64() * 1000.0;
+
+        match outcome {
+            RpcCallOutcome::Ok(bytes) => {
+                return EthCallRetryResult {
+                    result: Ok(bytes),
+                    attempts: attempt,
+                };
             }
-            Err(RpcError::ErrorResp(resp)) if [3, -32000].contains(&resp.code) => {
-                return Err(EthCallRetryError::RpcError(resp));
+            RpcCallOutcome::NonRetryableError(resp) => {
+                tracing::debug!(
+                    attempt,
+                    network,
+                    provider,
+                    latency_ms_attempt = attempt_latency_ms,
+                    error_class_attempt = "rpc_error_non_retryable",
+                    rpc_error_code_attempt = resp.code,
+                    will_retry = false,
+                    error_message = %resp.message,
+                    "eth_call attempt returned non-retryable error"
+                );
+                return EthCallRetryResult {
+                    result: Err(EthCallRetryError::RpcError(resp)),
+                    attempts: attempt,
+                };
             }
-            other => {
-                tracing::info!("unexpected RPC error: {other:?}, retrying");
+            RpcCallOutcome::RetryableError(source) => {
+                let will_retry = attempt < MAX_RETRY_ATTEMPTS;
+
+                tracing::debug!(
+                    attempt,
+                    network,
+                    provider,
+                    latency_ms_attempt = attempt_latency_ms,
+                    error_class_attempt = "rpc_error_retryable",
+                    will_retry,
+                    error_message = %source,
+                    "eth_call attempt failed with retryable error"
+                );
+
+                if let Some(metrics) = metrics {
+                    metrics.record_retry(network, provider);
+                }
+
+                if !will_retry {
+                    tracing::warn!(
+                        attempts = MAX_RETRY_ATTEMPTS,
+                        network,
+                        provider,
+                        error_message = %source,
+                        "eth_call retries exhausted"
+                    );
+                }
             }
         }
     }
-    tracing::info!("RPC error: retries failed for request {req:?}");
-    Err(EthCallRetryError::RetriesFailed)
+    EthCallRetryResult {
+        result: Err(EthCallRetryError::RetriesFailed),
+        attempts: MAX_RETRY_ATTEMPTS,
+    }
 }
 
-enum EthCallRetryError {
-    RpcError(ErrorPayload),
-    RetriesFailed,
+/// Map an alloy `RpcError` to our transport-agnostic [`RpcCallOutcome`].
+fn classify_rpc_result(result: Result<Bytes, RpcError<TransportErrorKind>>) -> RpcCallOutcome {
+    match result {
+        Ok(bytes) => RpcCallOutcome::Ok(bytes),
+        Err(RpcError::ErrorResp(resp)) if [3, -32000].contains(&resp.code) => {
+            RpcCallOutcome::NonRetryableError(resp)
+        }
+        Err(err) => RpcCallOutcome::RetryableError(err),
+    }
+}
+
+fn block_selector_type(block: &BlockNumberOrTag) -> &'static str {
+    match block {
+        BlockNumberOrTag::Number(_) => "number",
+        _ => "tag",
+    }
 }

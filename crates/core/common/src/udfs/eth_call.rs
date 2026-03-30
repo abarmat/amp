@@ -1,5 +1,9 @@
 mod cache;
+mod metrics;
 mod udf;
 
-pub use cache::{EthCallForNetworkError, EthCallUdfsCache};
-pub use udf::EthCall;
+pub use self::{
+    cache::{EthCallForNetworkError, EthCallUdfsCache},
+    metrics::EthCallMetrics,
+    udf::EthCall,
+};

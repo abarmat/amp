@@ -11,9 +11,10 @@ use datafusion::{
     logical_expr::{ScalarUDF, async_udf::AsyncScalarUDF},
 };
 use datasets_common::network_id::NetworkId;
+use monitoring::telemetry::metrics::Meter;
 use parking_lot::RwLock;
 
-use super::udf::EthCall;
+use super::{metrics::EthCallMetrics, udf::EthCall};
 
 /// Manages creation and caching of `eth_call` scalar UDFs keyed by network.
 ///
@@ -22,6 +23,7 @@ use super::udf::EthCall;
 pub struct EthCallUdfsCache {
     registry: ProvidersRegistry,
     cache: Arc<RwLock<HashMap<NetworkId, ScalarUDF>>>,
+    metrics: Option<Arc<EthCallMetrics>>,
 }
 
 impl std::fmt::Debug for EthCallUdfsCache {
@@ -32,10 +34,14 @@ impl std::fmt::Debug for EthCallUdfsCache {
 
 impl EthCallUdfsCache {
     /// Creates a new EthCall UDFs cache.
-    pub fn new(registry: ProvidersRegistry) -> Self {
+    ///
+    /// If a `meter` is provided, metrics will be recorded for every eth_call invocation.
+    pub fn new(registry: ProvidersRegistry, meter: Option<&Meter>) -> Self {
+        let metrics = meter.map(|m| Arc::new(EthCallMetrics::new(m)));
         Self {
             registry,
             cache: Default::default(),
+            metrics,
         }
     }
 
@@ -61,7 +67,7 @@ impl EthCallUdfsCache {
         // TODO: Always selects the first provider. Rotation across retries would
         // require rethinking the cache key (currently NetworkId only) since the
         // cached UDF holds a reference to a specific provider.
-        let Some((name, config)) = self
+        let Some((provider_name, config)) = self
             .registry
             .find_providers(EvmRpcProviderKind, network)
             .await
@@ -72,16 +78,27 @@ impl EthCallUdfsCache {
                 provider_network = %network,
                 "no EVM RPC provider found for network"
             );
-            return Err(EthCallForNetworkError::ProviderNotFound {
+            let err = EthCallForNetworkError::ProviderNotFound {
                 network: network.clone(),
-            });
+            };
+            if let Some(metrics) = &self.metrics {
+                metrics.record_network_error(network.as_str(), &err);
+            }
+            return Err(err);
         };
-        let provider = amp_providers_registry::create_evm_rpc_client(name.to_string(), config)
-            .await
-            .map_err(EthCallForNetworkError::ProviderCreation)?;
+        let provider =
+            amp_providers_registry::create_evm_rpc_client(provider_name.to_string(), config)
+                .await
+                .map_err(EthCallForNetworkError::ProviderCreation)?;
 
-        let udf = AsyncScalarUDF::new(Arc::new(EthCall::new(udf_name.to_string(), provider)))
-            .into_scalar_udf();
+        let udf = AsyncScalarUDF::new(Arc::new(EthCall::new(
+            udf_name.to_string(),
+            provider,
+            provider_name,
+            network.clone(),
+            self.metrics.clone(),
+        )))
+        .into_scalar_udf();
 
         self.cache.write().insert(network.clone(), udf.clone());
 

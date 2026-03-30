@@ -423,7 +423,7 @@ impl TestCtxBuilder {
             (datasets_registry, providers_registry)
         };
         let datasets_cache = DatasetsCache::new(datasets_registry.clone());
-        let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone());
+        let ethcall_udfs_cache = EthCallUdfsCache::new(providers_registry.clone(), None);
 
         // Create Anvil fixture (if enabled) and capture provider config for later registration
         let (anvil, anvil_provider_config) = match self.anvil_fixture {
